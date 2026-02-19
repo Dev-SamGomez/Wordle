@@ -55,12 +55,6 @@ export default function Home() {
             revealingRow={game.revealingRow}
             onRevealComplete={game.finishReveal}
           />
-
-          <GameOver
-            status={game.gameStatus}
-            solution={game.solution}
-            onPlayAgain={game.resetGame}
-          />
         </div>
 
         <div className="w-full shrink-0 pb-[env(safe-area-inset-bottom)]">
@@ -69,6 +63,12 @@ export default function Home() {
             keyboardColors={game.keyboardColors}
           />
         </div>
+
+        <GameOver
+          status={game.gameStatus}
+          solution={game.solution}
+          onPlayAgain={game.resetGame}
+        />
       </div>
 
       {showTutorial && <Tutorial onClose={handleCloseTutorial} />}
