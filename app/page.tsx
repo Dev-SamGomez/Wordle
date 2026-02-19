@@ -6,10 +6,13 @@ import { Keyboard } from "@/components/wordle/Keyboard";
 import { Tutorial } from "@/components/wordle/Tutorial";
 import { Toast } from "@/components/wordle/Toast";
 import { useGame } from "@/hooks/use-game";
+import { FiMenu } from "react-icons/fi";
+import SidebarMenu from "@/components/wordle/SideBarMenu";
 
 export default function Home() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [openSidebar, setOpenSidebar] = useState(false);
 
   const game = useGame();
 
@@ -37,10 +40,23 @@ export default function Home() {
   return (
     <main className="h-dvh bg-[#121213] flex flex-col items-center relative select-none overflow-hidden">
       <header className="w-full border-b border-[#3a3a3c] py-2 sm:py-3 flex items-center justify-center shrink-0">
+        <button
+          className="absolute left-4 text-white text-2xl"
+          type="button"
+          onClick={() => setOpenSidebar(true)}
+        >
+          <FiMenu />
+        </button>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-white">
           WORDLE
         </h1>
       </header>
+
+      <SidebarMenu
+        open={openSidebar}
+        onOpenChange={setOpenSidebar}
+        onTutorial={() => setShowTutorial(true)}
+      />
 
       <Toast message={game.toastMessage} />
 
