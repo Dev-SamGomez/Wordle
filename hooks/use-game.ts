@@ -53,7 +53,8 @@ export function useGame() {
 
   useEffect(() => {
     if (state.toastMessage) {
-      const timer = setTimeout(clearToast, 2000);
+      const duration = state.gameStatus !== "playing" ? 4000 : 2000;
+      const timer = setTimeout(clearToast, duration);
       return () => clearTimeout(timer);
     }
   }, [state.toastMessage, clearToast]);
@@ -115,8 +116,8 @@ export function useGame() {
             evaluation
           );
 
-          const isWin = evaluation.every((s) => s === "correct");
-          const isLoss = !isWin && newGuesses.length >= 6;
+          // const isWin = evaluation.every((s) => s === "correct");
+          // const isLoss = !isWin && newGuesses.length >= 6;
 
           return {
             ...prev,
@@ -124,11 +125,11 @@ export function useGame() {
             evaluations: newEvaluations,
             currentGuess: "",
             currentRow: prev.currentRow + 1,
-            gameStatus: isWin ? "won" : isLoss ? "lost" : "playing",
             keyboardColors: newKeyboardColors,
             revealingRow: prev.currentRow,
             toastMessage: "",
           };
+
         }
 
         if (key === "BACKSPACE") {
@@ -153,7 +154,27 @@ export function useGame() {
   );
 
   const finishReveal = useCallback(() => {
-    setState((prev) => ({ ...prev, revealingRow: null }));
+    setState((prev) => {
+      const lastEvaluation = prev.evaluations[prev.evaluations.length - 1];
+
+      if (!lastEvaluation) {
+        return { ...prev, revealingRow: null };
+      }
+
+      const isWin = lastEvaluation.every((s) => s === "correct");
+      const isLoss = !isWin && prev.guesses.length >= 6;
+
+      return {
+        ...prev,
+        revealingRow: null,
+        gameStatus: isWin ? "won" : isLoss ? "lost" : "playing",
+        toastMessage: isWin
+          ? "¡Ganaste!"
+          : isLoss
+            ? `Perdiste, Era: ${prev.solution}`
+            : "",
+      };
+    });
   }, []);
 
   const resetGame = useCallback(() => {

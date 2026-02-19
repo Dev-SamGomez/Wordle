@@ -5,7 +5,6 @@ import { Board } from "@/components/wordle/Board";
 import { Keyboard } from "@/components/wordle/Keyboard";
 import { Tutorial } from "@/components/wordle/Tutorial";
 import { Toast } from "@/components/wordle/Toast";
-import { GameOver } from "@/components/wordle/GameOver";
 import { useGame } from "@/hooks/use-game";
 
 export default function Home() {
@@ -45,8 +44,8 @@ export default function Home() {
 
       <Toast message={game.toastMessage} />
 
-      <div className="flex-1 flex flex-col items-center justify-between py-2 sm:py-4 gap-2 sm:gap-4 w-full max-w-lg min-h-0">
-        <div className="flex flex-col items-center gap-2 sm:gap-4 flex-1 justify-center min-h-0">
+      <div className="flex-1 flex flex-col items-center py-2 sm:py-4 gap-2 sm:gap-4 w-full max-w-lg min-h-0">
+        <div className="flex flex-col p-10 items-center sm:gap-4 justify-center min-h-0">
           <Board
             guesses={game.guesses}
             evaluations={game.evaluations}
@@ -57,18 +56,23 @@ export default function Home() {
           />
         </div>
 
+        {game.gameStatus !== "playing" && (
+          <div className="flex justify-center">
+            <button
+              onClick={game.resetGame}
+              className="px-6 py-3 bg-white text-[#121213] font-bold rounded hover:bg-[#e0e0e0] transition-colors text-sm"
+            >
+              Jugar de nuevo
+            </button>
+          </div>
+        )}
+
         <div className="w-full shrink-0 pb-[env(safe-area-inset-bottom)]">
           <Keyboard
             onKey={game.handleKeyPress}
             keyboardColors={game.keyboardColors}
           />
         </div>
-
-        <GameOver
-          status={game.gameStatus}
-          solution={game.solution}
-          onPlayAgain={game.resetGame}
-        />
       </div>
 
       {showTutorial && <Tutorial onClose={handleCloseTutorial} />}
