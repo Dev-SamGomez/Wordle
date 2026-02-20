@@ -2070,7 +2070,6 @@ export const WORDS: string[] = [
   "INDRA",
   "INFLA",
   "INFLO",
-  "INGAS",
   "INGRE",
   "INTER",
   "IÑIGO",
@@ -2104,7 +2103,6 @@ export const WORDS: string[] = [
   "JAEÑA",
   "JAFES",
   "JALAR",
-  "JALBA",
   "JALEA",
   "JALEO",
   "JALON",
@@ -2316,4 +2314,8 @@ export const WORDS: string[] = [
   "TAMAL",
   "PAÑAL",
   "PANAL",
+  "TIPOS",
+  "TIBIA",
+  "TIBIO",
+  "CRIAR"
 ];
