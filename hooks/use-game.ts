@@ -116,9 +116,6 @@ export function useGame() {
             evaluation
           );
 
-          // const isWin = evaluation.every((s) => s === "correct");
-          // const isLoss = !isWin && newGuesses.length >= 6;
-
           return {
             ...prev,
             guesses: newGuesses,
