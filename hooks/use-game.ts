@@ -21,16 +21,16 @@ export interface GameState {
   keyboardColors: KeyboardColors;
   revealingRow: number | null;
   gameMode: GameMode;
+  streaks: Streaks;
 }
 
 const uniqueWords = [...new Set(WORDS.map((w) => w.toUpperCase()))];
 
-// --- Palabra del dia ---
 const a = 157;
 const b = 263;
 const p = 10000019;
 
-function wordDay(): string {
+const wordDay = (): string => {
   const hoy = new Date();
   const dia = hoy.getDate();
   const mes = hoy.getMonth() + 1;
@@ -40,7 +40,7 @@ function wordDay(): string {
   return uniqueWords[hash];
 }
 
-function getTodayKey(): string {
+const getTodayKey = (): string => {
   const hoy = new Date();
   return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
 }
@@ -53,7 +53,73 @@ interface DailyState {
   gameStatus: GameStatus;
 }
 
-function loadDailyState(): DailyState | null {
+export interface Streaks {
+  dailyStreak: number;
+  dailyLastWinDate: string;
+  solitaireStreak: number;
+}
+
+const DEFAULT_STREAKS: Streaks = { dailyStreak: 0, dailyLastWinDate: "", solitaireStreak: 0 };
+
+const loadStreaks = (): Streaks => {
+  if (typeof window === "undefined") return DEFAULT_STREAKS;
+  try {
+    const raw = localStorage.getItem("wordle-streaks");
+    if (!raw) return { ...DEFAULT_STREAKS };
+    const parsed = JSON.parse(raw);
+    return {
+      dailyStreak: parsed.dailyStreak ?? 0,
+      dailyLastWinDate: parsed.dailyLastWinDate ?? "",
+      solitaireStreak: parsed.solitaireStreak ?? 0,
+    };
+  } catch {
+    return { ...DEFAULT_STREAKS };
+  }
+}
+
+const saveStreaks = (streaks: Streaks) => {
+  localStorage.setItem("wordle-streaks", JSON.stringify(streaks));
+}
+
+const getYesterdayKey = (): string => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+}
+
+const updateDailyStreak = (won: boolean): Streaks => {
+  const streaks = loadStreaks();
+  const todayKey = getTodayKey();
+
+  if (streaks.dailyLastWinDate === todayKey) return streaks;
+
+  if (won) {
+    const yesterdayKey = getYesterdayKey();
+    const isConsecutive = streaks.dailyLastWinDate === yesterdayKey;
+    streaks.dailyStreak = isConsecutive ? streaks.dailyStreak + 1 : 1;
+    streaks.dailyLastWinDate = todayKey;
+  } else {
+    streaks.dailyStreak = 0;
+  }
+
+  saveStreaks(streaks);
+  return streaks;
+}
+
+const updateSolitaireStreak = (won: boolean): Streaks => {
+  const streaks = loadStreaks();
+
+  if (won) {
+    streaks.solitaireStreak = streaks.solitaireStreak + 1;
+  } else {
+    streaks.solitaireStreak = 0;
+  }
+
+  saveStreaks(streaks);
+  return streaks;
+}
+
+const loadDailyState = (): DailyState | null => {
   try {
     const raw = localStorage.getItem("wordle-daily");
     if (!raw) return null;
@@ -65,12 +131,11 @@ function loadDailyState(): DailyState | null {
   }
 }
 
-function saveDailyState(state: DailyState) {
+const saveDailyState = (state: DailyState) => {
   localStorage.setItem("wordle-daily", JSON.stringify(state));
 }
 
-// --- Random word helper ---
-function getRandomWord(usedWords: Set<string>): string {
+const getRandomWord = (usedWords: Set<string>): string => {
   const available = uniqueWords.filter((w) => !usedWords.has(w));
   if (available.length === 0) {
     return uniqueWords[Math.floor(Math.random() * uniqueWords.length)];
@@ -80,6 +145,7 @@ function getRandomWord(usedWords: Set<string>): string {
 
 export function useGame() {
   const usedWordsRef = useRef<Set<string>>(new Set());
+  const streakCountedRef = useRef(false);
 
   const [state, setState] = useState<GameState>(() => {
     const word = getRandomWord(usedWordsRef.current);
@@ -95,8 +161,14 @@ export function useGame() {
       keyboardColors: {},
       revealingRow: null,
       gameMode: "solitaire",
+      streaks: { ...DEFAULT_STREAKS },
     };
   });
+
+  useEffect(() => {
+    const saved = loadStreaks();
+    setState((prev) => ({ ...prev, streaks: saved }));
+  }, []);
 
   const clearToast = useCallback(() => {
     setState((prev) => ({ ...prev, toastMessage: "" }));
@@ -164,7 +236,6 @@ export function useGame() {
             evaluation
           );
 
-          // Persist daily state
           if (prev.gameMode === "daily") {
             const isWin = evaluation.every((s) => s === "correct");
             const isLoss = !isWin && newGuesses.length >= 6;
@@ -218,8 +289,9 @@ export function useGame() {
 
   const finishReveal = useCallback(() => {
     setState((prev) => {
-      const lastEvaluation = prev.evaluations[prev.evaluations.length - 1];
+      if (prev.revealingRow === null) return prev;
 
+      const lastEvaluation = prev.evaluations[prev.evaluations.length - 1];
       if (!lastEvaluation) {
         return { ...prev, revealingRow: null };
       }
@@ -227,10 +299,23 @@ export function useGame() {
       const isWin = lastEvaluation.every((s) => s === "correct");
       const isLoss = !isWin && prev.guesses.length >= 6;
 
+      let newStreaks = prev.streaks;
+
+      if ((isWin || isLoss) && !streakCountedRef.current) {
+        if (prev.gameMode === "daily") {
+          newStreaks = updateDailyStreak(isWin);
+        } else {
+          newStreaks = updateSolitaireStreak(isWin);
+        }
+
+        streakCountedRef.current = true;
+      }
+
       return {
         ...prev,
         revealingRow: null,
         gameStatus: isWin ? "won" : isLoss ? "lost" : "playing",
+        streaks: newStreaks,
         toastMessage: isWin
           ? "Ganaste!"
           : isLoss
@@ -243,6 +328,8 @@ export function useGame() {
   const resetGame = useCallback(() => {
     const word = getRandomWord(usedWordsRef.current);
     usedWordsRef.current.add(word);
+    streakCountedRef.current = false;
+    const currentStreaks = loadStreaks();
     setState({
       solution: word,
       guesses: [],
@@ -254,11 +341,13 @@ export function useGame() {
       keyboardColors: {},
       revealingRow: null,
       gameMode: "solitaire",
+      streaks: currentStreaks,
     });
   }, []);
 
   const startDailyGame = useCallback(() => {
     const daily = wordDay();
+    const currentStreaks = loadStreaks();
 
     const saved = loadDailyState();
     if (saved) {
@@ -278,6 +367,7 @@ export function useGame() {
               : "",
         revealingRow: null,
         gameMode: "daily",
+        streaks: currentStreaks,
       });
     } else {
       setState({
@@ -291,11 +381,11 @@ export function useGame() {
         keyboardColors: {},
         revealingRow: null,
         gameMode: "daily",
+        streaks: currentStreaks,
       });
     }
   }, []);
 
-  // Physical keyboard listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;

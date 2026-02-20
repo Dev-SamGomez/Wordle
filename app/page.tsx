@@ -6,7 +6,7 @@ import { Keyboard } from "@/components/wordle/Keyboard";
 import { Tutorial } from "@/components/wordle/Tutorial";
 import { Toast } from "@/components/wordle/Toast";
 import { useGame } from "@/hooks/use-game";
-import { Menu } from "lucide-react";
+import { Flame, Menu } from "lucide-react";
 import SidebarMenu from "@/components/wordle/SideBarMenu";
 
 export default function Home() {
@@ -55,6 +55,12 @@ export default function Home() {
           <span className="text-[10px] sm:text-xs text-[#538d4e] font-medium tracking-wider uppercase">
             {game.gameMode === "daily" ? "Palabra del dia" : "Solitario"}
           </span>
+          <div className="flex items-center gap-1 text-[#ac461d]" title={game.gameMode === "daily" ? "Racha diaria" : "Racha solitario"}>
+            <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-sm sm:text-base font-bold tabular-nums">
+              {game.gameMode === "daily" ? (game.streaks?.dailyStreak ?? 0) : (game.streaks?.solitaireStreak ?? 0)}
+            </span>
+          </div>
         </div>
       </header>
 
