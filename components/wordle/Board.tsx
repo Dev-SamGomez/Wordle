@@ -1,6 +1,7 @@
 "use client";
 
 import { type Evaluation } from "@/hooks/use-game";
+import { Tile } from "./Tile";
 
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
@@ -44,7 +45,6 @@ export function Board({
         "w-[52px] h-[52px] sm:w-[62px] sm:h-[62px] border-2 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white uppercase transition-all duration-200";
 
       if (i < guesses.length) {
-        // Completed row
         letter = guesses[i][j];
         const isRevealing = revealingRow === i;
         const colorClass = getColor(evaluations[i][j]);
@@ -53,7 +53,6 @@ export function Board({
           cellClass += ` border-[#3a3a3c] ${colorClass}`;
           cellClass += " animate-flip";
 
-          // Trigger onRevealComplete after the last cell finishes
           if (j === WORD_LENGTH - 1) {
             setTimeout(onRevealComplete, WORD_LENGTH * 350);
           }
@@ -61,32 +60,23 @@ export function Board({
           cellClass += ` ${colorClass}`;
         }
       } else if (i === currentRow) {
-        // Current row being typed
         letter = currentGuess[j] || "";
         cellClass += letter
           ? " border-[#565758] scale-105"
           : " border-[#3a3a3c]";
       } else {
-        // Empty future row
         cellClass += " border-[#3a3a3c]";
       }
 
       cells.push(
-        <div
+        <Tile
           key={`${i}-${j}`}
-          className={cellClass}
-          style={
-            revealingRow === i
-              ? {
-                  animationDelay: `${j * 350}ms`,
-                  animationDuration: "500ms",
-                  animationFillMode: "both",
-                }
-              : undefined
-          }
-        >
-          {letter}
-        </div>
+          letter={letter}
+          state={i < guesses.length ? evaluations[i][j] : undefined}
+          isRevealing={revealingRow === i}
+          revealDelay={j * 350}
+          isCurrentRow={i === currentRow}
+        />
       );
     }
 
