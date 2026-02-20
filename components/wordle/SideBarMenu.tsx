@@ -5,12 +5,16 @@ import {
     SheetContent,
     SheetHeader,
     SheetTitle,
+    SheetDescription,
 } from "@/components/ui/sheet";
+import { BookOpen, CalendarDays, Spade } from "lucide-react";
 
 interface SidebarMenuProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onTutorial: () => void;
+    onDailyWord: () => void;
+    onSolitaire: () => void;
 }
 
 const menuItems = [
@@ -32,6 +36,8 @@ export default function SidebarMenu({
     open,
     onOpenChange,
     onTutorial,
+    onDailyWord,
+    onSolitaire,
 }: SidebarMenuProps) {
     const handleAction = (action: string) => {
         switch (action) {
@@ -40,9 +46,11 @@ export default function SidebarMenu({
                 onOpenChange(false);
                 break;
             case "word-of-day":
+                onDailyWord();
                 onOpenChange(false);
                 break;
             case "solitaire":
+                onSolitaire();
                 onOpenChange(false);
                 break;
         }

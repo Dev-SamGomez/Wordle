@@ -6,7 +6,7 @@ import { Keyboard } from "@/components/wordle/Keyboard";
 import { Tutorial } from "@/components/wordle/Tutorial";
 import { Toast } from "@/components/wordle/Toast";
 import { useGame } from "@/hooks/use-game";
-import { FiMenu } from "react-icons/fi";
+import { Menu } from "lucide-react";
 import SidebarMenu from "@/components/wordle/SideBarMenu";
 
 export default function Home() {
@@ -41,21 +41,29 @@ export default function Home() {
     <main className="h-dvh bg-[#121213] flex flex-col items-center relative select-none overflow-hidden">
       <header className="w-full border-b border-[#3a3a3c] py-2 sm:py-3 flex items-center justify-center shrink-0">
         <button
-          className="absolute left-4 text-white text-2xl"
+          className="absolute left-4 text-[#818384] hover:text-white transition-colors"
           type="button"
           onClick={() => setOpenSidebar(true)}
+          aria-label="Abrir menu"
         >
-          <FiMenu />
+          <Menu className="w-6 h-6" />
         </button>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-white">
-          WORDLE
-        </h1>
+        <div className="flex flex-col items-center">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-white">
+            WORDLE
+          </h1>
+          <span className="text-[10px] sm:text-xs text-[#538d4e] font-medium tracking-wider uppercase">
+            {game.gameMode === "daily" ? "Palabra del dia" : "Solitario"}
+          </span>
+        </div>
       </header>
 
       <SidebarMenu
         open={openSidebar}
         onOpenChange={setOpenSidebar}
         onTutorial={() => setShowTutorial(true)}
+        onDailyWord={game.startDailyGame}
+        onSolitaire={game.resetGame}
       />
 
       <Toast message={game.toastMessage} />
@@ -75,10 +83,10 @@ export default function Home() {
         {game.gameStatus !== "playing" && (
           <div className="flex justify-center">
             <button
-              onClick={game.resetGame}
+              onClick={game.gameMode === "daily" ? game.resetGame : game.resetGame}
               className="px-6 py-3 bg-white text-[#121213] font-bold rounded hover:bg-[#e0e0e0] transition-colors text-sm"
             >
-              Jugar de nuevo
+              {game.gameMode === "daily" ? "Jugar solitario" : "Jugar de nuevo"}
             </button>
           </div>
         )}

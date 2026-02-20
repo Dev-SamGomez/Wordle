@@ -1,16 +1,28 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Tile } from "./Tile";
-import { type LetterState } from "@/utils/evaluateWord";
+import { type Evaluation } from "@/hooks/use-game";
+
+const WORD_LENGTH = 5;
+const MAX_GUESSES = 6;
 
 interface BoardProps {
   guesses: string[];
-  evaluations: LetterState[][];
+  evaluations: Evaluation[][];
   currentGuess: string;
   currentRow: number;
   revealingRow: number | null;
   onRevealComplete: () => void;
+}
+
+function getColor(evaluation: Evaluation): string {
+  switch (evaluation) {
+    case "correct":
+      return "bg-[#538d4e] border-[#538d4e]";
+    case "present":
+      return "bg-[#b59f3b] border-[#b59f3b]";
+    case "absent":
+      return "bg-[#3a3a3c] border-[#3a3a3c]";
+  }
 }
 
 export function Board({
@@ -21,67 +33,69 @@ export function Board({
   revealingRow,
   onRevealComplete,
 }: BoardProps) {
-  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (revealingRow !== null) {
-      revealTimerRef.current = setTimeout(() => {
-        onRevealComplete();
-      }, 5 * 300 + 500);
-
-      return () => {
-        if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
-      };
-    }
-  }, [revealingRow, onRevealComplete]);
-
   const rows = [];
 
-  for (let i = 0; i < 6; i++) {
-    const tiles = [];
+  for (let i = 0; i < MAX_GUESSES; i++) {
+    const cells = [];
 
-    if (i < guesses.length) {
-      const guess = guesses[i];
-      const evaluation = evaluations[i];
-      const isRevealing = revealingRow === i;
+    for (let j = 0; j < WORD_LENGTH; j++) {
+      let letter = "";
+      let cellClass =
+        "w-[52px] h-[52px] sm:w-[62px] sm:h-[62px] border-2 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white uppercase transition-all duration-200";
 
-      for (let j = 0; j < 5; j++) {
-        tiles.push(
-          <Tile
-            key={j}
-            letter={guess[j]}
-            state={evaluation[j]}
-            isRevealing={isRevealing}
-            revealDelay={j * 300}
-          />
-        );
+      if (i < guesses.length) {
+        // Completed row
+        letter = guesses[i][j];
+        const isRevealing = revealingRow === i;
+        const colorClass = getColor(evaluations[i][j]);
+
+        if (isRevealing) {
+          cellClass += ` border-[#3a3a3c] ${colorClass}`;
+          cellClass += " animate-flip";
+
+          // Trigger onRevealComplete after the last cell finishes
+          if (j === WORD_LENGTH - 1) {
+            setTimeout(onRevealComplete, WORD_LENGTH * 350);
+          }
+        } else {
+          cellClass += ` ${colorClass}`;
+        }
+      } else if (i === currentRow) {
+        // Current row being typed
+        letter = currentGuess[j] || "";
+        cellClass += letter
+          ? " border-[#565758] scale-105"
+          : " border-[#3a3a3c]";
+      } else {
+        // Empty future row
+        cellClass += " border-[#3a3a3c]";
       }
-    } else if (i === currentRow) {
-      for (let j = 0; j < 5; j++) {
-        tiles.push(
-          <Tile
-            key={j}
-            letter={currentGuess[j] || ""}
-            isCurrentRow={true}
-          />
-        );
-      }
-    } else {
-      for (let j = 0; j < 5; j++) {
-        tiles.push(<Tile key={j} letter="" />);
-      }
+
+      cells.push(
+        <div
+          key={`${i}-${j}`}
+          className={cellClass}
+          style={
+            revealingRow === i
+              ? {
+                  animationDelay: `${j * 350}ms`,
+                  animationDuration: "500ms",
+                  animationFillMode: "both",
+                }
+              : undefined
+          }
+        >
+          {letter}
+        </div>
+      );
     }
 
     rows.push(
-      <div key={i} className="flex gap-1 sm:gap-[5px]">
-        {tiles}
+      <div key={i} className="flex gap-1.5">
+        {cells}
       </div>
     );
   }
 
-  return (
-    <div className="flex flex-col items-center gap-1 sm:gap-[5px]">
-      {rows}
-    </div>
-  );
+  return <div className="flex flex-col gap-1.5">{rows}</div>;
 }
