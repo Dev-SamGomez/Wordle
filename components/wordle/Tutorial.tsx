@@ -1,32 +1,10 @@
 "use client";
 
 import { X } from "lucide-react";
+import ExampleTile from "./ExampleTileTutorial";
 
 interface TutorialProps {
   onClose: () => void;
-}
-
-function ExampleTile({
-  letter,
-  variant,
-}: {
-  letter: string;
-  variant: "correct" | "present" | "absent" | "default";
-}) {
-  const colors = {
-    correct: "bg-[#538d4e] border-[#538d4e] text-white",
-    present: "bg-[#b59f3b] border-[#b59f3b] text-white",
-    absent: "bg-[#3a3a3c] border-[#3a3a3c] text-white",
-    default: "border-[#565758] text-white",
-  };
-
-  return (
-    <div
-      className={`w-10 h-10 flex items-center justify-center text-lg font-bold uppercase border-2 ${colors[variant]}`}
-    >
-      {letter}
-    </div>
-  );
 }
 
 export function Tutorial({ onClose }: TutorialProps) {
@@ -103,6 +81,14 @@ export function Tutorial({ onClose }: TutorialProps) {
         <p className="text-sm text-center text-[#818384]">
           Hay una palabra nueva disponible cada vez que juegas.
         </p>
+
+        <button
+          onClick={onClose}
+          className="w-full mt-6 px-6 py-3 bg-[#538d4e] text-white font-bold rounded hover:bg-[#4a7d45] transition-colors"
+        >
+          Jugar
+        </button>
+
       </div>
     </div>
   );
