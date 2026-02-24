@@ -5,19 +5,22 @@ import {
     SheetContent,
     SheetHeader,
     SheetTitle,
-    SheetDescription,
 } from "@/components/ui/sheet";
-import { BookOpen, CalendarDays, Spade } from "lucide-react";
-
 interface SidebarMenuProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onShowMain: () => void;
     onTutorial: () => void;
     onDailyWord: () => void;
     onSolitaire: () => void;
+    onMultiplayer: () => void;
 }
 
 const menuItems = [
+    {
+        label: "Inicio",
+        action: "inicio" as const,
+    },
     {
         label: "Tutorial",
         action: "tutorial" as const,
@@ -30,17 +33,27 @@ const menuItems = [
         label: "Solitario",
         action: "solitaire" as const,
     },
+    {
+        label: "Competitivo",
+        action: "multiplayer" as const,
+    },
 ];
 
 export default function SidebarMenu({
     open,
     onOpenChange,
+    onShowMain,
     onTutorial,
     onDailyWord,
     onSolitaire,
+    onMultiplayer
 }: SidebarMenuProps) {
     const handleAction = (action: string) => {
         switch (action) {
+            case "inicio":
+                onShowMain();
+                onOpenChange(false);
+                break;
             case "tutorial":
                 onTutorial();
                 onOpenChange(false);
@@ -51,6 +64,10 @@ export default function SidebarMenu({
                 break;
             case "solitaire":
                 onSolitaire();
+                onOpenChange(false);
+                break;
+            case "multiplayer":
+                onMultiplayer();
                 onOpenChange(false);
                 break;
         }
