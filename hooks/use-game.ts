@@ -8,7 +8,7 @@ export type { LetterState };
 export type Evaluation = LetterState;
 export type GameStatus = "playing" | "won" | "lost";
 export type KeyboardColors = Record<string, LetterState>;
-export type GameMode = "solitaire" | "daily";
+export type GameMode = "solitaire" | "daily" | "multiplayer";
 
 export interface GameState {
   solution: string;
@@ -386,6 +386,23 @@ export function useGame() {
     }
   }, []);
 
+  const multiplayerMode = useCallback(() => {
+    const currentStreaks = loadStreaks();
+    setState({
+      solution: "",
+      guesses: [],
+      evaluations: [],
+      currentGuess: "",
+      currentRow: 0,
+      gameStatus: "playing",
+      toastMessage: "",
+      keyboardColors: {},
+      revealingRow: null,
+      gameMode: "multiplayer",
+      streaks: currentStreaks,
+    });
+  }, [])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -414,5 +431,6 @@ export function useGame() {
     resetGame,
     startDailyGame,
     finishReveal,
+    multiplayerMode
   };
 }
