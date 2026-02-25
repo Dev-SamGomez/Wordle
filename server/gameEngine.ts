@@ -17,4 +17,6 @@ export interface Room {
     players: PlayerState[];
     words: string[];
     createdAt: number;
+    rematchRequests?: Set<string>;
+    cleanupTimer?: NodeJS.Timeout | null;
 }
