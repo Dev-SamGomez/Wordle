@@ -1,0 +1,21 @@
+const CountdownScreen = ({ countdown }: { countdown: number }) => {
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-[#121213] p-4">
+            <div className="text-center">
+                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#538d4e]/15 ring-1 ring-[#538d4e]/30">
+                    <span className="text-4xl font-bold text-[#538d4e]">
+                        {countdown}
+                    </span>
+                </div>
+                <h2 className="text-3xl font-bold tracking-tight text-white">
+                    Preparados!
+                </h2>
+                <p className="mt-2 text-sm text-[#818184]">
+                    La partida comienza en {countdown}...
+                </p>
+            </div>
+        </div>
+    );
+}
+
+export default CountdownScreen;
