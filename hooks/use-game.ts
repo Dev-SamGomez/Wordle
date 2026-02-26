@@ -77,6 +77,21 @@ const loadStreaks = (): Streaks => {
   }
 }
 
+const COMP_STORAGE_KEY = "wordle-competitive-profile-v1";
+
+function loadCompetitiveCups(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(COMP_STORAGE_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    const cups = Number(parsed?.cups ?? 0);
+    return Number.isFinite(cups) && cups > 0 ? cups : 0;
+  } catch {
+    return 0;
+  }
+}
+
 const saveStreaks = (streaks: Streaks) => {
   localStorage.setItem("wordle-streaks", JSON.stringify(streaks));
 }
@@ -440,6 +455,10 @@ export function useGame() {
     }
   }, []);
 
+  const getCompetitiveCups = useCallback((): number => {
+    return loadCompetitiveCups();
+  }, []);
+
   const multiplayerMode = useCallback(() => {
     const currentStreaks = loadStreaks();
     setState({
@@ -515,6 +534,7 @@ export function useGame() {
     finishReveal,
     multiplayerMode,
     onRevealComplete,
-    startMultiplayerRound
+    startMultiplayerRound,
+    getCompetitiveCups
   };
 }

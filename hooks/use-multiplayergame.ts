@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useGame } from "./use-game";
 import type { LetterState } from "@/utils/evaluateWord";
+import { applyCompetitiveResult, CompetitiveResult, loadCompetitiveProfile, saveCompetitiveProfile, type CompetitiveProfile } from "@/utils/competitive";
 
 type RivalUpdate = {
     solvedCount: number;
@@ -11,6 +12,13 @@ type RivalUpdate = {
     wordFinished?: boolean;
     wasSolved?: boolean;
     wordIndex?: number;
+};
+
+type GameFinishedPayload = {
+    winnerSocketId: string | "draw";
+    winnerName: string;
+    reason?: "three_of_three" | "score" | "draw" | "abandon";
+    scores?: { socketId: string; name: string; score: number }[];
 };
 
 export function useMultiplayer() {
@@ -43,6 +51,10 @@ export function useMultiplayer() {
     const lastHandledKeyRef = useRef<string | null>(null);
     const subscribedRef = useRef(false);
 
+    const [profile, setProfile] = useState<CompetitiveProfile>(() => loadCompetitiveProfile());
+    const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
+    const finishAppliedRef = useRef(false);
+
     useEffect(() => {
         const s = io(process.env.NEXT_PUBLIC_SOCKET_URL);
         socketRef.current = s;
@@ -70,6 +82,8 @@ export function useMultiplayer() {
         });
 
         s.on("room_ready", () => {
+            finishAppliedRef.current = false;
+            setLastMatchDelta(null);
             setRematchStatus("countdown");
             setStatus("countdown");
             setCountdown(3);
@@ -89,6 +103,8 @@ export function useMultiplayer() {
             wordsRef.current = words.map((w: string) => w.toUpperCase());
             idxRef.current = 0;
             lastHandledKeyRef.current = null;
+            finishAppliedRef.current = false;
+            setLastMatchDelta(null);
 
             game.multiplayerMode();
             game.startMultiplayerRound(wordsRef.current[0]);
@@ -125,9 +141,35 @@ export function useMultiplayer() {
             }
         });
 
-        s.on("game_finished", ({ winnerSocketId, winnerName }) => {
-            setWinner(winnerName);
-            setWinnerSocketId(winnerSocketId ?? null);
+        s.on("game_finished", (data: GameFinishedPayload) => {
+            if (finishAppliedRef.current) {
+                setStatus("finished");
+                setRematchStatus("idle");
+                return;
+            }
+            finishAppliedRef.current = true;
+
+            const myId = socketRef.current?.id ?? null;
+
+            let result: CompetitiveResult;
+            if (!data.winnerSocketId || data.winnerSocketId === "draw") {
+                result = "draw";
+            } else {
+                result = data.winnerSocketId === myId ? "win" : "lose";
+            }
+
+            setProfile(prev => {
+                const updated = applyCompetitiveResult(prev, result, {
+                    roomCode: roomId,
+                    opponentId: data.scores?.find(s => s.socketId !== myId)?.socketId ?? null,
+                });
+                saveCompetitiveProfile(updated);
+                setLastMatchDelta(updated.cups - prev.cups);
+                return updated;
+            });
+
+            setWinner(data.winnerName);
+            setWinnerSocketId(data.winnerSocketId ?? null);
             setStatus("finished");
             setRematchStatus("idle");
         });
@@ -255,6 +297,21 @@ export function useMultiplayer() {
         createRoom,
         joinRoom,
         leaveRoom,
-        requestRematch
+        requestRematch,
+        competitive: {
+            cups: profile.cups,
+            wins: profile.wins,
+            losses: profile.losses,
+            draws: profile.draws,
+            gamesPlayed: profile.gamesPlayed,
+            lastMatchDelta,
+            history: profile.history,
+        },
+        resetCompetitiveProfile: () => {
+            const fresh = loadCompetitiveProfile();
+            saveCompetitiveProfile(fresh);
+            setProfile(fresh);
+            setLastMatchDelta(null);
+        },
     };
 }
