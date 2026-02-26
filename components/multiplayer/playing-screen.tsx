@@ -36,7 +36,7 @@ const PlayingScreen = ({
                 </div>
             </div>
             <div className="pt-5 text-xs text-[#ac461d]">
-                Palabra {game.currentWordIndex + 1}/3
+                Palabra {game.currentWordIndex < 3 ? game.currentWordIndex + 1 : game.currentWordIndex}/3
             </div>
             <div className="flex flex-col p-10 items-center sm:gap-4 justify-center min-h-0">
                 <Board

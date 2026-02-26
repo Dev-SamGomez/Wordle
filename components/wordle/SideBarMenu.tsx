@@ -6,6 +6,8 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
+import { formatCups } from "@/utils/competitive";
+import { Flame, Trophy } from "lucide-react";
 interface SidebarMenuProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -14,6 +16,9 @@ interface SidebarMenuProps {
     onDailyWord: () => void;
     onSolitaire: () => void;
     onMultiplayer: () => void;
+    cups: number;
+    streakDaily: number;
+    streakSolitarie: number;
 }
 
 const menuItems = [
@@ -46,8 +51,12 @@ export default function SidebarMenu({
     onTutorial,
     onDailyWord,
     onSolitaire,
-    onMultiplayer
+    onMultiplayer,
+    cups,
+    streakDaily,
+    streakSolitarie
 }: SidebarMenuProps) {
+
     const handleAction = (action: string) => {
         switch (action) {
             case "inicio":
@@ -85,17 +94,56 @@ export default function SidebarMenu({
                     </SheetTitle>
                 </SheetHeader>
 
+
                 <nav className="flex flex-col py-2">
                     {menuItems.map((item) => (
                         <button
                             key={item.action}
                             onClick={() => handleAction(item.action)}
-                            className="flex items-center gap-3 px-5 py-3.5 text-[#d7dadc] hover:bg-[#3a3a3c]/50 transition-colors text-left"
+                            className="flex items-center justify-between gap-3 px-5 py-3.5 text-[#d7dadc] hover:bg-[#3a3a3c]/50 transition-colors text-left"
                         >
                             <span className="text-sm font-medium">{item.label}</span>
+
+                            {item.action === "multiplayer" && (
+                                <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-[#3a3a3c] bg-[#2a2a2c] px-2 py-0.5"
+                                    title={`${cups} copas`}
+                                >
+                                    <Trophy className="h-3.5 w-3.5 text-[#c9b458]" />
+                                    <span className="text-[11px] font-semibold text-[#e5e5e7] tabular-nums">
+                                        {formatCups(cups)}
+                                    </span>
+                                </span>
+                            )}
+
+                            {item.action === "word-of-day" && (
+                                <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-[#3a3a3c] bg-[#2a2a2c] px-2 py-0.5"
+                                    title={`${streakDaily} racha`}
+                                >
+                                    <Flame className="h-3.5 w-3.5 text-[#ac461d]" />
+                                    <span className="text-[11px] font-semibold text-[#e5e5e7] tabular-nums">
+                                        {formatCups(streakDaily)}
+                                    </span>
+                                </span>
+                            )}
+
+                            {item.action === "solitaire" && (
+                                <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-[#3a3a3c] bg-[#2a2a2c] px-2 py-0.5"
+                                    title={`${streakSolitarie} racha`}
+                                >
+                                    <Flame className="h-3.5 w-3.5 text-[#ac461d]" />
+                                    <span className="text-[11px] font-semibold text-[#e5e5e7] tabular-nums">
+                                        {formatCups(streakSolitarie)}
+                                    </span>
+                                </span>
+                            )}
+
                         </button>
                     ))}
                 </nav>
+
             </SheetContent>
         </Sheet>
     );

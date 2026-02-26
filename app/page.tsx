@@ -19,6 +19,7 @@ export default function Home() {
   const [openSidebar, setOpenSidebar] = useState(false);
 
   const game = useGame();
+  const cups = game.getCompetitiveCups();
 
   useEffect(() => {
     setMounted(true);
@@ -104,6 +105,9 @@ export default function Home() {
         onDailyWord={handleWordDay}
         onSolitaire={handleSolitarie}
         onMultiplayer={handleMultiPlayer}
+        cups={cups}
+        streakDaily={game.streaks?.dailyStreak ?? 0}
+        streakSolitarie={game.streaks?.solitaireStreak ?? 0}
       />
 
       <Toast message={game.toastMessage} />

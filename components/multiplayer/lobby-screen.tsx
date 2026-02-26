@@ -1,5 +1,5 @@
 import { useMultiplayer } from "@/hooks/use-multiplayergame";
-import { LogIn, Plus, Users } from "lucide-react";
+import { LogIn, Plus, Trophy, Users } from "lucide-react";
 import { useState } from "react";
 import { SiChessdotcom } from "react-icons/si";
 
@@ -20,6 +20,28 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                     <p className="mt-2 text-sm text-[#818184]">
                         Crea una sala o unete a una partida existente
                     </p>
+                    <div className="pt-5 items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-base font-bold text-white tabular-nums">
+                            <Trophy className="h-4 w-4 text-[#c9b458]" />
+                            {game.competitive.cups}
+                        </span>
+
+                        {typeof game.competitive.lastMatchDelta === "number" && (
+                            <span
+                                className={`text-xs font-semibold ${game.competitive.lastMatchDelta > 0
+                                        ? "text-[#538d4e]"
+                                        : game.competitive.lastMatchDelta < 0
+                                            ? "text-[#b91c1c]"
+                                            : "text-[#818184]"
+                                    }`}
+                            >
+                                {game.competitive.lastMatchDelta > 0
+                                    ? `+${game.competitive.lastMatchDelta}`
+                                    : game.competitive.lastMatchDelta}{" "}
+                                copas
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="rounded-2xl border border-[#3a3a3c] bg-[#1a1a1b] p-6 shadow-xl shadow-black/30">
