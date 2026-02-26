@@ -23,7 +23,7 @@ const FinishedScreen = ({
     let result: "win" | "lose" | "draw";
     console.log("winnerSocketId", winnerSocketId)
     console.log("mySocketId", mySocketId)
-    if (!winnerSocketId || winnerSocketId === "Empate") {
+    if (!winnerSocketId || winnerSocketId === "draw") {
         result = "draw";
     } else {
         result = winnerSocketId === mySocketId ? "win" : "lose";
