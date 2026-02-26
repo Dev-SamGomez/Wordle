@@ -20,7 +20,7 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                     <p className="mt-2 text-sm text-[#818184]">
                         Crea una sala o unete a una partida existente
                     </p>
-                    <div className="pt-5 items-center gap-2">
+                    <div className="pt-5 flex items-center justify-center gap-2">
                         <span className="inline-flex items-center gap-1 text-base font-bold text-white tabular-nums">
                             <Trophy className="h-4 w-4 text-[#c9b458]" />
                             {game.competitive.cups}
