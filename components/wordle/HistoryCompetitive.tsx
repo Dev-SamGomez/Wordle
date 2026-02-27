@@ -1,46 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trophy, Swords, X, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Trophy, Swords, X } from "lucide-react";
 import { CompetitiveProfile } from "@/data/competitive-res";
 import { loadCompetitiveProfile } from "@/utils/competitive";
+import { RANKS } from "@/data/ranks";
+import { formatDate } from "@/utils/formatDate";
+import { getRankInfo } from "@/utils/getRank";
+import { resultConfig } from "@/data/result-config";
 
 interface CompetitiveRecordProps {
     onClose: () => void;
 }
 
-function getRankInfo(cups: number): { label: string; color: string } {
-    if (cups >= 3000) return { label: "Maestro", color: "#b59f3b" };
-    if (cups >= 2000) return { label: "Diamante", color: "#60a5fa" };
-    if (cups >= 1500) return { label: "Oro", color: "#fbbf24" };
-    if (cups >= 500) return { label: "Plata", color: "#9ca3af" };
-    return { label: "Bronce", color: "#cd7f32" };
-}
-
-const RANKS = [
-    { label: "Bronce", color: "#cd7f32", min: 0 },
-    { label: "Plata", color: "#9ca3af", min: 500 },
-    { label: "Oro", color: "#fbbf24", min: 1500 },
-    { label: "Diamante", color: "#60a5fa", min: 2000 },
-    { label: "Maestro", color: "#b59f3b", min: 3000 },
-];
-
 const MAX_CUPS = 3600;
-
-function formatDate(ts: number) {
-    const d = new Date(ts);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${day}/${month} ${hours}:${minutes}`;
-}
-
-const resultConfig = {
-    win: { label: "Victoria", color: "text-[#538d4e]", bg: "bg-[#538d4e]/10", border: "border-[#538d4e]/30", icon: ArrowUp },
-    lose: { label: "Derrota", color: "text-[#d32f2f]", bg: "bg-[#d32f2f]/10", border: "border-[#d32f2f]/30", icon: ArrowDown },
-    draw: { label: "Empate", color: "text-[#b59f3b]", bg: "bg-[#b59f3b]/10", border: "border-[#b59f3b]/30", icon: Minus },
-};
 
 export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
     const [profile, setProfile] = useState<CompetitiveProfile | null>(null);
@@ -102,7 +75,7 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                     <div className="px-5 pb-4">
                         <div className="bg-[#121213] border border-[#3a3a3c] rounded-lg p-4">
                             <h3 className="text-[11px] text-[#818384] uppercase tracking-wider mb-4">
-                                Camino de ranking
+                                ligas
                             </h3>
 
                             <div className="relative mx-3 mb-1">
