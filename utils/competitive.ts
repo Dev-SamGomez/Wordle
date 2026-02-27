@@ -1,22 +1,4 @@
-export type CompetitiveResult = "win" | "lose" | "draw";
-
-export type CompetitiveHistoryItem = {
-    ts: number;
-    result: CompetitiveResult;
-    delta: number;
-    roomCode?: string | null;
-    opponentId?: string | null;
-};
-
-export type CompetitiveProfile = {
-    cups: number;
-    wins: number;
-    losses: number;
-    draws: number;
-    gamesPlayed: number;
-    lastUpdated: string;
-    history: CompetitiveHistoryItem[];
-};
+import { CompetitiveProfile, CompetitiveResult } from "@/data/competitive-res";
 
 const STORAGE_KEY = "wordle-competitive-profile-v1";
 const DEFAULT_STARTING_CUPS = 0;
