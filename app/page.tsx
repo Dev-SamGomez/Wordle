@@ -11,12 +11,14 @@ import SidebarMenu from "@/components/wordle/SideBarMenu";
 import MultiplayerHome from "@/components/multiplayer/multiplayer-home";
 import MainScreen from "@/components/main";
 import CompetitiveRecord from "@/components/wordle/HistoryCompetitive";
+import Leaderboard from "@/components/wordle/Leaderboard";
 
 export default function Home() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [showHistoryCompetitive, setShowHistoryCompetitive] = useState(false);
   const [showMainScreen, setShowMainScreen] = useState<boolean>(true);
+  const [showLeaderBoard, setShowLeaderBoard] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
   const [openSidebar, setOpenSidebar] = useState(false);
 
@@ -40,6 +42,10 @@ export default function Home() {
     setShowHistoryCompetitive(false);
   };
 
+  const handleCloseLeaderBoard = () => {
+    setShowLeaderBoard(false);
+  };
+
   const handleMultiPlayer = () => {
     if (showMainScreen) setShowMainScreen(prev => !prev)
     game.multiplayerMode()
@@ -60,6 +66,10 @@ export default function Home() {
 
   const handleHistoryCompetitive = () => {
     setShowHistoryCompetitive(true)
+  }
+
+  const handleLeaderBoard = () => {
+    setShowLeaderBoard(true)
   }
 
   if (!mounted) {
@@ -116,6 +126,7 @@ export default function Home() {
         onSolitaire={handleSolitarie}
         onMultiplayer={handleMultiPlayer}
         onCompetitiveRecord={handleHistoryCompetitive}
+        onLeaderBoard={handleLeaderBoard}
         cups={cups}
         streakDaily={game.streaks?.dailyStreak ?? 0}
         streakSolitarie={game.streaks?.solitaireStreak ?? 0}
@@ -177,6 +188,7 @@ export default function Home() {
 
       {showTutorial && <Tutorial onClose={handleCloseTutorial} />}
       {showHistoryCompetitive && <CompetitiveRecord onClose={handleCloseHistoryCompetitive} />}
+      {showLeaderBoard && <Leaderboard onClose={handleCloseLeaderBoard} />}
     </main>
   );
 }
