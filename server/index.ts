@@ -22,6 +22,29 @@ const io = new Server(server, {
     },
 });
 
+type QueueEntry = {
+    socketId: string;
+    name: string;
+    enqueuedAt: number;
+};
+
+const matchmakingQueue: QueueEntry[] = [];
+
+function removeFromQueue(socketId: string) {
+    const idx = matchmakingQueue.findIndex(e => e.socketId === socketId);
+    if (idx !== -1) matchmakingQueue.splice(idx, 1);
+}
+
+function takeOpponentFIFO(excludeId: string): QueueEntry | null {
+    for (let i = 0; i < matchmakingQueue.length; i++) {
+        if (matchmakingQueue[i].socketId !== excludeId) {
+            const [opponent] = matchmakingQueue.splice(i, 1);
+            return opponent;
+        }
+    }
+    return null;
+}
+
 function generateRoomCode(existingCodes: Set<string>): string {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let code = "";
@@ -115,6 +138,76 @@ function startRematch(io: Server, room: Room) {
     room.rematchRequests?.clear();
 
     io.to(room.id).emit("room_ready");
+    console.log("palabras competitivas", room.words)
+
+    let counter = 3;
+    const interval = setInterval(() => {
+        io.to(room.id).emit("countdown_tick", counter);
+        counter--;
+        if (counter < 0) {
+            clearInterval(interval);
+            room.status = "playing";
+            io.to(room.id).emit("game_start", { words: room.words });
+        }
+    }, 1000);
+}
+
+function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
+    const id = uuid();
+    const code = generateRoomCode(new Set(roomsByCode.keys()));
+
+    const p1: PlayerState = {
+        socketId: a.socketId,
+        name: a.name,
+        score: 0,
+        currentWordIndex: 0,
+        attempts: 0,
+        finished: false,
+        finishedAt: undefined,
+    };
+    const p2: PlayerState = {
+        socketId: b.socketId,
+        name: b.name,
+        score: 0,
+        currentWordIndex: 0,
+        attempts: 0,
+        finished: false,
+        finishedAt: undefined,
+    };
+
+    const room: Room = {
+        id,
+        code,
+        status: "countdown",
+        players: [p1, p2],
+        words: getThreeRandomWords(),
+        createdAt: Date.now(),
+    };
+
+    createRoom(room);
+
+    const s1 = io.sockets.sockets.get(a.socketId);
+    const s2 = io.sockets.sockets.get(b.socketId);
+
+    if (!s1 || !s2) {
+        deleteRoom(room.id);
+        if (s1 && !s2) {
+            matchmakingQueue.unshift({ socketId: a.socketId, name: a.name, enqueuedAt: Date.now() });
+            s1.emit("queue_update", { status: "requeued" });
+        } else if (!s1 && s2) {
+            matchmakingQueue.unshift({ socketId: b.socketId, name: b.name, enqueuedAt: Date.now() });
+            s2.emit("queue_update", { status: "requeued" });
+        }
+        return;
+    }
+
+    s1.join(id);
+    s2.join(id);
+
+    s1.emit("match_found", { code, opponentName: p2.name });
+    s2.emit("match_found", { code, opponentName: p1.name });
+
+    io.to(room.id).emit("room_ready");
 
     let counter = 3;
     const interval = setInterval(() => {
@@ -153,8 +246,8 @@ io.on("connection", (socket: Socket) => {
             words: getThreeRandomWords(),
             createdAt: Date.now(),
         };
-        console.log("palabras competitivas ", room.code)
-        console.log("palabras codigo de sala ", room.words)
+        console.log("palabras codigo de sala", room.code)
+        console.log("palabras competitivas", room.words)
         createRoom(room);
         socket.join(id);
 
@@ -256,10 +349,13 @@ io.on("connection", (socket: Socket) => {
             );
 
             if (remaining) {
+                room.status = "finished";
                 io.to(id).emit("game_finished", {
                     winner: remaining.socketId,
+                    winnerName: remaining.name,
                     reason: "abandon",
                 });
+                scheduleCleanup(room)
             }
 
             deleteRoom(id);
@@ -289,6 +385,37 @@ io.on("connection", (socket: Socket) => {
 
         io.to(room.id).emit("rematch_declined", { by: socket.id });
         deleteRoom(room.id);
+    });
+
+    socket.on("find_match", (data: { name: string; cups?: number }) => {
+        removeFromQueue(socket.id);
+
+        const entry: QueueEntry = {
+            socketId: socket.id,
+            name: data.name,
+            enqueuedAt: Date.now(),
+        };
+
+        const opponent = takeOpponentFIFO(socket.id);
+
+        if (!opponent) {
+            matchmakingQueue.push(entry);
+            socket.emit("queue_update", {
+                status: "enqueued",
+                position: matchmakingQueue.findIndex(e => e.socketId === socket.id) + 1,
+                size: matchmakingQueue.length,
+            });
+            return;
+        }
+
+        console.log(entry)
+
+        createMatchFromQueueEntries(io, opponent, entry);
+    });
+
+    socket.on("cancel_find", () => {
+        removeFromQueue(socket.id);
+        socket.emit("queue_update", { status: "cancelled" });
     });
 });
 

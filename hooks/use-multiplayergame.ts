@@ -3,23 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useGame } from "./use-game";
 import type { LetterState } from "@/utils/evaluateWord";
-import { applyCompetitiveResult, CompetitiveResult, loadCompetitiveProfile, saveCompetitiveProfile, type CompetitiveProfile } from "@/utils/competitive";
-
-type RivalUpdate = {
-    solvedCount: number;
-    currentWordIndex: number;
-    evaluation: LetterState[];
-    wordFinished?: boolean;
-    wasSolved?: boolean;
-    wordIndex?: number;
-};
-
-type GameFinishedPayload = {
-    winnerSocketId: string | "draw";
-    winnerName: string;
-    reason?: "three_of_three" | "score" | "draw" | "abandon";
-    scores?: { socketId: string; name: string; score: number }[];
-};
+import { applyCompetitiveResult, loadCompetitiveProfile, saveCompetitiveProfile } from "@/utils/competitive";
+import { CompetitiveProfile, CompetitiveResult } from "@/data/competitive-res";
+import { RivalUpdate } from "@/data/rival-update-type";
+import { GameFinishedPayload } from "@/data/game-finished-payload-type";
 
 export function useMultiplayer() {
     const game = useGame();
@@ -28,7 +15,7 @@ export function useMultiplayer() {
     const socketRef = useRef<Socket | null>(null);
 
     const [roomId, setRoomId] = useState<string | null>(null);
-    const [status, setStatus] = useState<"waiting" | "countdown" | "playing" | "finished">("waiting");
+    const [status, setStatus] = useState<"waiting" | "queueing" | "countdown" | "playing" | "finished">("waiting");
     const [countdown, setCountdown] = useState(3);
     const [winner, setWinner] = useState<string | null>(null);
 
@@ -185,6 +172,18 @@ export function useMultiplayer() {
             setRematchStatus("declined");
         });
 
+        s.on("queue_update", (payload: any) => {
+            if (payload?.status === "enqueued") {
+                setStatus("queueing");
+            } else if (payload?.status === "cancelled") {
+                setStatus("waiting");
+            }
+        });
+
+        s.on("match_found", ({ code, opponentName }) => {
+            setRoomId(code);
+        });
+
         return () => {
             s.off("connect");
             s.off("disconnect");
@@ -197,6 +196,8 @@ export function useMultiplayer() {
             s.off("game_start");
             s.off("rival_progress");
             s.off("game_finished");
+            s.off("queue_update");
+            s.off("match_found");
             s.disconnect();
             socketRef.current = null;
         }
@@ -269,6 +270,17 @@ export function useMultiplayer() {
         setRematchStatus("idle");
     };
 
+    const findMatch = (name: string, cups?: number) => {
+        setStatus("queueing");
+        setRoomId(null);
+        socketRef.current?.emit("find_match", { name, cups });
+    };
+
+    const cancelFind = () => {
+        socketRef.current?.emit("cancel_find");
+        setStatus("waiting");
+    };
+
     return {
         roomId,
         gameStatus: status,
@@ -298,6 +310,8 @@ export function useMultiplayer() {
         joinRoom,
         leaveRoom,
         requestRematch,
+        findMatch,
+        cancelFind,
         competitive: {
             cups: profile.cups,
             wins: profile.wins,
