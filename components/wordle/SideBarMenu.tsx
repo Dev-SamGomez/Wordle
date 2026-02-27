@@ -18,6 +18,7 @@ interface SidebarMenuProps {
     onSolitaire: () => void;
     onMultiplayer: () => void;
     onCompetitiveRecord: () => void;
+    onLeaderBoard: () => void;
     cups: number;
     streakDaily: number;
     streakSolitarie: number;
@@ -55,6 +56,7 @@ export default function SidebarMenu({
     onSolitaire,
     onMultiplayer,
     onCompetitiveRecord,
+    onLeaderBoard,
     cups,
     streakDaily,
     streakSolitarie
@@ -86,6 +88,10 @@ export default function SidebarMenu({
                 onCompetitiveRecord();
                 onOpenChange(false);
                 break;
+            case "leader-board":
+                onLeaderBoard();
+                onOpenChange(false);
+                break;
         }
     };
 
@@ -100,7 +106,6 @@ export default function SidebarMenu({
                         WORDLE
                     </SheetTitle>
                 </SheetHeader>
-
 
                 <nav className="flex flex-col py-2">
                     {menuItems.filter(x => x.label !== "Competitivo").map((item) => (
@@ -164,11 +169,16 @@ export default function SidebarMenu({
                                             </span>
                                         </button>
                                         <button
-                                            key={7}
                                             onClick={() => handleAction("competitive-record")}
                                             className="flex items-center gap-3 px-2 py-3 text-[#d7dadc] hover:bg-[#3a3a3c]/50 rounded-md transition-colors text-left"
                                         >
                                             <span className="text-sm">Historial Competitivo</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction("leader-board")}
+                                            className="flex items-center gap-3 px-2 py-3 text-[#d7dadc] hover:bg-[#3a3a3c]/50 rounded-md transition-colors text-left"
+                                        >
+                                            <span className="text-sm">Top mejores jugadores</span>
                                         </button>
                                     </div>
                                 </AccordionContent>
