@@ -10,10 +10,12 @@ import { Flame, Menu } from "lucide-react";
 import SidebarMenu from "@/components/wordle/SideBarMenu";
 import MultiplayerHome from "@/components/multiplayer/multiplayer-home";
 import MainScreen from "@/components/main";
+import CompetitiveRecord from "@/components/wordle/HistoryCompetitive";
 
 export default function Home() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
+  const [showHistoryCompetitive, setShowHistoryCompetitive] = useState(false);
   const [showMainScreen, setShowMainScreen] = useState<boolean>(true);
   const [mounted, setMounted] = useState(false);
   const [openSidebar, setOpenSidebar] = useState(false);
@@ -34,6 +36,10 @@ export default function Home() {
     localStorage.setItem("wordle-tutorial-seen", "true");
   };
 
+  const handleCloseHistoryCompetitive = () => {
+    setShowHistoryCompetitive(false);
+  };
+
   const handleMultiPlayer = () => {
     if (showMainScreen) setShowMainScreen(prev => !prev)
     game.multiplayerMode()
@@ -50,6 +56,10 @@ export default function Home() {
     if (showMainScreen) setShowMainScreen(prev => !prev)
     game.startDailyGame()
     if (showMultiplayer) setShowMultiplayer(prev => !prev)
+  }
+
+  const handleHistoryCompetitive = () => {
+    setShowHistoryCompetitive(true)
   }
 
   if (!mounted) {
@@ -105,6 +115,7 @@ export default function Home() {
         onDailyWord={handleWordDay}
         onSolitaire={handleSolitarie}
         onMultiplayer={handleMultiPlayer}
+        onCompetitiveRecord={handleHistoryCompetitive}
         cups={cups}
         streakDaily={game.streaks?.dailyStreak ?? 0}
         streakSolitarie={game.streaks?.solitaireStreak ?? 0}
@@ -165,6 +176,7 @@ export default function Home() {
       )}
 
       {showTutorial && <Tutorial onClose={handleCloseTutorial} />}
+      {showHistoryCompetitive && <CompetitiveRecord onClose={handleCloseHistoryCompetitive} />}
     </main>
   );
 }
