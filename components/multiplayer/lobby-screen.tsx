@@ -132,7 +132,7 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                                         Buscando partida…
                                     </p>
                                     <p className="text-xs text-[#818184] mt-1">
-                                        Te notificaremos cuando encontremos un rival.
+                                        La partida comenzara al encontrar a un jugador disponible.
                                     </p>
                                 </div>
                             )}
