@@ -137,6 +137,8 @@ function startRematch(io: Server, room: Room) {
     room.status = "countdown";
     room.rematchRequests?.clear();
 
+    emitOpponentInfo(io, room);
+
     io.to(room.id).emit("room_ready");
     console.log("palabras competitivas", room.words)
 
@@ -184,6 +186,8 @@ function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
         createdAt: Date.now(),
     };
 
+    console.log("palabras codigo de sala", room.code)
+    console.log("palabras competitivas", room.words)
     createRoom(room);
 
     const s1 = io.sockets.sockets.get(a.socketId);
@@ -207,6 +211,8 @@ function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
     s1.emit("match_found", { code, opponentName: p2.name });
     s2.emit("match_found", { code, opponentName: p1.name });
 
+    emitOpponentInfo(io, room);
+
     io.to(room.id).emit("room_ready");
 
     let counter = 3;
@@ -219,6 +225,33 @@ function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
             io.to(room.id).emit("game_start", { words: room.words });
         }
     }, 1000);
+}
+
+function emitOpponentInfo(io: Server, room: Room) {
+    if (room.players.length < 2) return;
+    const [p1, p2] = room.players;
+
+    const s1 = io.sockets.sockets.get(p1.socketId);
+    const s2 = io.sockets.sockets.get(p2.socketId);
+
+    if (s1) {
+        s1.emit("opponent_info", {
+            mySocketId: p1.socketId,
+            myName: p1.name,
+            opponentSocketId: p2.socketId,
+            opponentName: p2.name,
+            roomCode: room.code,
+        });
+    }
+    if (s2) {
+        s2.emit("opponent_info", {
+            mySocketId: p2.socketId,
+            myName: p2.name,
+            opponentSocketId: p1.socketId,
+            opponentName: p1.name,
+            roomCode: room.code,
+        });
+    }
 }
 
 io.on("connection", (socket: Socket) => {
@@ -275,6 +308,8 @@ io.on("connection", (socket: Socket) => {
         socket.join(room.id);
 
         room.status = "countdown";
+
+        emitOpponentInfo(io, room);
 
         io.to(room.id).emit("room_ready");
 

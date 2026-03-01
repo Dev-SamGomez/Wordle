@@ -1,4 +1,10 @@
-const CountdownScreen = ({ countdown }: { countdown: number }) => {
+interface CountdownScreenProps {
+    countdown: number
+    myName: string
+    opponentName: string
+}
+
+const CountdownScreen = ({ countdown, myName, opponentName }: CountdownScreenProps) => {
     return (
         <div className="flex min-h-screen items-center justify-center bg-[#121213] p-4">
             <div className="text-center">
@@ -10,6 +16,11 @@ const CountdownScreen = ({ countdown }: { countdown: number }) => {
                 <h2 className="text-3xl font-bold tracking-tight text-white">
                     Preparados!
                 </h2>
+
+                <p className="mt-2 text-sm text-[#e5e5e7] font-semibold">
+                    {(myName || "Tú")} <span className="text-[#818184]">vs</span> {opponentName || "Rival"}
+                </p>
+
                 <p className="mt-2 text-sm text-[#818184]">
                     La partida comienza en {countdown}...
                 </p>

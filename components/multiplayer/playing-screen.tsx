@@ -12,6 +12,7 @@ const PlayingScreen = ({
     game,
 }: PlayingScreenProps) => {
     console.log("STATUS:", game.gameStatus);
+    console.log("PlayingScreen opponent:", game.opponentName, "my:", game.myName);
     return (
         <div className="flex min-h-screen flex-col items-center bg-[#121213] p-4">
             <div className="flex items-stretch gap-3">
@@ -27,7 +28,7 @@ const PlayingScreen = ({
                 </div>
                 <div className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-[#3a3a3c] bg-[#2a2a2c] py-3 px-2">
                     <span className="text-xs font-semibold text-[#e5e5e7]">
-                        Rival
+                        {game.opponentName || "Rival"}
                     </span>
                     <RoundDots
                         results={game.roundResultsRival}

@@ -19,7 +19,11 @@ export default function MultiplayerHome() {
     }
 
     if (game.gameStatus === "countdown") {
-        return <CountdownScreen countdown={game.countdown} />;
+        return <CountdownScreen
+            countdown={game.countdown}
+            myName={game.myName}
+            opponentName={game.opponentName}
+        />;
     }
 
     if (game.gameStatus === "playing") {

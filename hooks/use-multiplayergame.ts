@@ -18,6 +18,8 @@ export function useMultiplayer() {
     const [status, setStatus] = useState<"waiting" | "queueing" | "countdown" | "playing" | "finished">("waiting");
     const [countdown, setCountdown] = useState(3);
     const [winner, setWinner] = useState<string | null>(null);
+    const [myName, setMyName] = useState<string>("");
+    const [opponentName, setOpponentName] = useState<string>("");
 
     const [score, setScore] = useState(0);
 
@@ -128,6 +130,20 @@ export function useMultiplayer() {
             }
         });
 
+        s.on("opponent_info", (payload: {
+            mySocketId: string;
+            myName: string;
+            opponentSocketId: string;
+            opponentName: string;
+            roomCode: string;
+        }) => {
+            setMySocketId(payload.mySocketId ?? null);
+            setMyName(payload.myName || myName);
+            console.log("[SOCKET] opponent_info", payload);
+            setOpponentName(payload.opponentName || "");
+            setRoomId(payload.roomCode);
+        });
+
         s.on("game_finished", (data: GameFinishedPayload) => {
             if (finishAppliedRef.current) {
                 setStatus("finished");
@@ -198,6 +214,7 @@ export function useMultiplayer() {
             s.off("game_finished");
             s.off("queue_update");
             s.off("match_found");
+            s.off("opponent_info");
             s.disconnect();
             socketRef.current = null;
         }
@@ -250,9 +267,13 @@ export function useMultiplayer() {
         }
     }, [game]);
 
-    const createRoom = (name: string) => socketRef.current?.emit("create_room", { name });
+    const createRoom = (name: string) => {
+        setMyName(name);
+        socketRef.current?.emit("create_room", { name })
+    };
     const joinRoom = (code: string, name: string) => {
         setRoomId(code);
+        setMyName(name);
         socketRef.current?.emit("join_room", { code, name });
     };
 
@@ -265,6 +286,8 @@ export function useMultiplayer() {
         if (!roomId) return;
         socketRef.current?.emit("leave_room", { code: roomId });
         setRoomId(null);
+        setMyName("");
+        setOpponentName("");
         setStatus("waiting");
         setWinnerSocketId(null);
         setRematchStatus("idle");
@@ -273,6 +296,7 @@ export function useMultiplayer() {
     const findMatch = (name: string, cups?: number) => {
         setStatus("queueing");
         setRoomId(null);
+        setMyName(name);
         socketRef.current?.emit("find_match", { name, cups });
     };
 
@@ -312,6 +336,8 @@ export function useMultiplayer() {
         requestRematch,
         findMatch,
         cancelFind,
+        myName,
+        opponentName,
         competitive: {
             cups: profile.cups,
             wins: profile.wins,
