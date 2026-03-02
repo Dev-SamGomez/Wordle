@@ -2,6 +2,7 @@
 
 import { type Evaluation } from "@/hooks/use-game";
 import { Tile } from "./Tile";
+import { useEffect, useRef } from "react";
 
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
@@ -34,6 +35,27 @@ export function Board({
   revealingRow,
   onRevealComplete,
 }: BoardProps) {
+
+  const firedForRowRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (revealingRow === null) {
+      firedForRowRef.current = null;
+      return;
+    }
+    if (firedForRowRef.current === revealingRow) return;
+    firedForRowRef.current = revealingRow;
+
+    const totalMs = (WORD_LENGTH - 1) * 350 + 500;
+    const timer = window.setTimeout(() => {
+      onRevealComplete();
+    }, totalMs);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [revealingRow, onRevealComplete]);
+
   const rows = [];
 
   for (let i = 0; i < MAX_GUESSES; i++) {
@@ -42,7 +64,7 @@ export function Board({
     for (let j = 0; j < WORD_LENGTH; j++) {
       let letter = "";
       let cellClass =
-        "w-[52px] h-[52px] sm:w-[62px] sm:h-[62px] border-2 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white uppercase transition-all duration-200";
+        "w-[52px] h-[52px] sm:w-[62px] sm:h-[62px] border-2 flex items-center justify-center text-2xl sm:text-3xl font-bold text-foreground uppercase transition-all duration-200";
 
       if (i < guesses.length) {
         letter = guesses[i][j];
@@ -52,10 +74,6 @@ export function Board({
         if (isRevealing) {
           cellClass += ` border-[#3a3a3c] ${colorClass}`;
           cellClass += " animate-flip";
-
-          if (j === WORD_LENGTH - 1) {
-            setTimeout(onRevealComplete, WORD_LENGTH * 350);
-          }
         } else {
           cellClass += ` ${colorClass}`;
         }

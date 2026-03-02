@@ -11,9 +11,12 @@ interface TileProps {
 }
 
 const stateColors: Record<LetterState, string> = {
-  correct: "bg-[#538d4e] border-[#538d4e]",
-  present: "bg-[#b59f3b] border-[#b59f3b]",
-  absent: "bg-[#3a3a3c] border-[#3a3a3c]",
+  correct:
+    "bg-[hsl(var(--tile-correct))] border-[hsl(var(--tile-correct))] text-white",
+  present:
+    "bg-[hsl(var(--tile-present))] border-[hsl(var(--tile-present))] text-white",
+  absent:
+    "bg-[hsl(var(--tile-absent))] border-[hsl(var(--tile-absent))] text-foreground",
 };
 
 export function Tile({
@@ -31,13 +34,13 @@ export function Tile({
     "w-[clamp(48px,13vw,62px)] h-[clamp(48px,13vw,62px)] flex items-center justify-center text-[clamp(1.25rem,4vw,1.875rem)] font-bold uppercase select-none border-2";
 
   const frontColor = hasLetter
-    ? "border-[#565758] bg-transparent text-white"
-    : "border-[#3a3a3c] bg-transparent text-white";
+    ? "border-[hsl(var(--tile-border-active))] bg-transparent text-foreground"
+    : "border-[hsl(var(--tile-border))] bg-transparent text-foreground";
 
   const backColor =
     state !== undefined
-      ? `${stateColors[state]} text-white`
-      : "border-[#3a3a3c] bg-transparent text-white";
+      ? stateColors[state]
+      : "border-[hsl(var(--tile-border))] bg-transparent text-foreground";
 
   const popClass = isCurrentRow && hasLetter && !state ? "animate-pop" : "";
 
