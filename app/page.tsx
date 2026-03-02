@@ -108,10 +108,10 @@ export default function Home() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-foreground">
               WORDLE
             </h1>
-            <span className="text-[10px] sm:text-xs text-[#538d4e] font-medium tracking-wider uppercase">
+            <span className="text-[10px] sm:text-xs text-[hsl(var(--tile-correct))] font-medium tracking-wider uppercase">
               {game.gameMode === "multiplayer" ? "competitivo" : game.gameMode === "daily" ? "Palabra del dia" : "Solitario"}
             </span>
-            <div className="flex items-center gap-1 text-[hsl(var(--destructive))]" title={game.gameMode === "multiplayer" ? "" : game.gameMode === "daily" ? "Racha Diaria" : "Racha Solitario"}>
+            <div className="flex items-center gap-1 text-[hsl(var(--tile-correct))]" title={game.gameMode === "multiplayer" ? "" : game.gameMode === "daily" ? "Racha Diaria" : "Racha Solitario"}>
               {
                 game.gameMode != "multiplayer" && (
                   <>
