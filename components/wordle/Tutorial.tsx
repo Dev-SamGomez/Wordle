@@ -9,7 +9,7 @@ interface TutorialProps {
 
 export function Tutorial({ onClose }: TutorialProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+    <div className="fixed inset-0 z-50 backdrop-blur-sm flex items-center justify-center bg-black/70">
       <div className="bg-[#121213] text-white max-w-md w-full mx-4 p-6 rounded-lg relative max-h-[90vh] overflow-y-auto border border-[#3a3a3c]">
         <button
           onClick={onClose}
