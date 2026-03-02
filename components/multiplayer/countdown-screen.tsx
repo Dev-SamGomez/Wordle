@@ -6,22 +6,22 @@ interface CountdownScreenProps {
 
 const CountdownScreen = ({ countdown, myName, opponentName }: CountdownScreenProps) => {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#121213] p-4">
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
             <div className="text-center">
-                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#538d4e]/15 ring-1 ring-[#538d4e]/30">
+                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-background/15 ring-1 ring-[#538d4e]/30">
                     <span className="text-4xl font-bold text-[#538d4e]">
                         {countdown}
                     </span>
                 </div>
-                <h2 className="text-3xl font-bold tracking-tight text-white">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground">
                     Preparados!
                 </h2>
 
-                <p className="mt-2 text-sm text-[#e5e5e7] font-semibold">
-                    {(myName || "Tú")} <span className="text-[#818184]">vs</span> {opponentName || "Rival"}
+                <p className="mt-2 text-sm text-foreground font-semibold">
+                    {(myName || "Tú")} <span className="text-muted-foreground">vs</span> {opponentName || "Rival"}
                 </p>
 
-                <p className="mt-2 text-sm text-[#818184]">
+                <p className="mt-2 text-sm text-muted-foreground">
                     La partida comienza en {countdown}...
                 </p>
             </div>

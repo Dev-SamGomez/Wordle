@@ -66,17 +66,17 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
 
     return (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#1a1a1b] border border-[#3a3a3c] rounded-xl w-full max-w-md flex flex-col max-h-[85dvh] overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-[#3a3a3c] shrink-0">
+            <div className="bg-background border border-border rounded-xl w-full max-w-md flex flex-col max-h-[85dvh] overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
                     <div className="flex items-center gap-2.5">
                         <Trophy className="w-5 h-5 text-[#b59f3b]" />
-                        <h2 className="text-white font-bold text-base tracking-wide">
+                        <h2 className="text-foreground font-bold text-base tracking-wide">
                             Top mejores jugadores
                         </h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-[#818384] hover:text-white transition-colors p-1"
+                        className="text-muted'foreground hover:text-foreground transition-colors p-1"
                         aria-label="Cerrar"
                     >
                         <X className="w-5 h-5" />
@@ -87,18 +87,18 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                     <div className="flex items-end justify-center gap-3">
                         {data[1] && (
                             <div className="flex flex-col items-center gap-1.5">
-                                <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-[#121213]" style={{ borderColor: getRank(data[1].cups).color }}>
+                                <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background" style={{ borderColor: getRank(data[1].cups).color }}>
                                     <span className="text-sm font-bold" style={{ color: getRank(data[1].cups).color }}>
                                         {data[1].name.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
-                                <span className="text-[11px] text-[#d7dadc] font-medium truncate max-w-[64px]">{data[1].name}</span>
+                                <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">{data[1].name}</span>
                                 <div className="flex items-center gap-0.5">
                                     <Trophy className="w-3 h-3" style={{ color: getRank(data[1].cups).color }} />
                                     <span className="text-[10px] font-bold tabular-nums" style={{ color: getRank(data[1].cups).color }}>{data[1].cups}</span>
                                 </div>
-                                <div className="w-14 h-14 bg-[#3a3a3c]/40 border border-[#3a3a3c] rounded-t-md flex items-center justify-center">
-                                    <span className="text-lg font-bold text-[#9ca3af]">2</span>
+                                <div className="w-14 h-14 bg-muted/40 border border-border rounded-t-md flex items-center justify-center">
+                                    <span className="text-lg font-bold text-muted-foreground">2</span>
                                 </div>
                             </div>
                         )}
@@ -106,17 +106,17 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                         {data[0] && (
                             <div className="flex flex-col items-center gap-1.5 -mt-4">
                                 <Crown className="w-5 h-5 text-[#fbbf24]" />
-                                <div className="w-14 h-14 rounded-full border-2 flex items-center justify-center bg-[#121213]" style={{ borderColor: getRank(data[0].cups).color }}>
+                                <div className="w-14 h-14 rounded-full border-2 flex items-center justify-center bg-background" style={{ borderColor: getRank(data[0].cups).color }}>
                                     <span className="text-base font-bold" style={{ color: getRank(data[0].cups).color }}>
                                         {data[0].name.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
-                                <span className="text-xs text-[#d7dadc] font-semibold truncate max-w-[72px]">{data[0].name}</span>
+                                <span className="text-xs text-muted-foreground font-semibold truncate max-w-[72px]">{data[0].name}</span>
                                 <div className="flex items-center gap-0.5">
                                     <Trophy className="w-3 h-3" style={{ color: getRank(data[0].cups).color }} />
                                     <span className="text-[11px] font-bold tabular-nums" style={{ color: getRank(data[0].cups).color }}>{data[0].cups}</span>
                                 </div>
-                                <div className="w-14 h-20 bg-[#fbbf24]/10 border border-[#fbbf24]/40 rounded-t-md flex items-center justify-center">
+                                <div className="w-14 h-20 bg-muted/10 border border-[#fbbf24]/40 rounded-t-md flex items-center justify-center">
                                     <span className="text-xl font-bold text-[#fbbf24]">1</span>
                                 </div>
                             </div>
@@ -124,17 +124,17 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
 
                         {data[2] && (
                             <div className="flex flex-col items-center gap-1.5">
-                                <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-[#121213]" style={{ borderColor: getRank(data[2].cups).color }}>
+                                <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background" style={{ borderColor: getRank(data[2].cups).color }}>
                                     <span className="text-sm font-bold" style={{ color: getRank(data[2].cups).color }}>
                                         {data[2].name.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
-                                <span className="text-[11px] text-[#d7dadc] font-medium truncate max-w-[64px]">{data[2].name}</span>
+                                <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">{data[2].name}</span>
                                 <div className="flex items-center gap-0.5">
                                     <Trophy className="w-3 h-3" style={{ color: getRank(data[2].cups).color }} />
                                     <span className="text-[10px] font-bold tabular-nums" style={{ color: getRank(data[2].cups).color }}>{data[2].cups}</span>
                                 </div>
-                                <div className="w-14 h-10 bg-[#cd7f32]/10 border border-[#cd7f32]/40 rounded-t-md flex items-center justify-center">
+                                <div className="w-14 h-10 bg-muted/10 border border-[#cd7f32]/40 rounded-t-md flex items-center justify-center">
                                     <span className="text-lg font-bold text-[#cd7f32]">3</span>
                                 </div>
                             </div>
@@ -143,12 +143,12 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                 </div>
 
                 <div className="px-5 shrink-0">
-                    <div className="border-t border-[#3a3a3c]" />
+                    <div className="border-t border-muted" />
                     <div className="flex items-center justify-between py-2.5">
-                        <span className="text-[10px] text-[#818384] uppercase tracking-wider font-medium">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
                             Clasificacion completa
                         </span>
-                        <span className="text-[10px] text-[#818384] tabular-nums">
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
                             {data.length} jugadores
                         </span>
                     </div>
@@ -175,13 +175,13 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                                 <div
                                     key={`${player.name}-${idx}`}
                                     className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isTop3
-                                        ? "bg-[#1a1a1b] border-[#3a3a3c]"
-                                        : "bg-[#121213] border-[#2a2a2b]"
+                                        ? "bg-background border-border"
+                                        : "bg-background border-border"
                                         }`}
                                 >
                                     <div className="w-7 flex items-center justify-center shrink-0">
                                         <span
-                                            className={`text-sm font-bold tabular-nums ${isTop3 ? posColors[position - 1] : "text-[#565656]"
+                                            className={`text-sm font-bold tabular-nums ${isTop3 ? posColors[position - 1] : "text-muted-foreground"
                                                 }`}
                                         >
                                             {position}
@@ -189,7 +189,7 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                                     </div>
 
                                     <div
-                                        className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 bg-[#121213]"
+                                        className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 bg-background"
                                         style={{ borderColor: rank.color + "88" }}
                                     >
                                         <span
@@ -201,7 +201,7 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-[#d7dadc] truncate">
+                                        <p className="text-sm font-semibold text-muted-foreground truncate">
                                             {player.name}
                                         </p>
                                         <p

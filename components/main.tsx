@@ -7,7 +7,7 @@ import { STATE_COLORS } from "@/data/dictionaries/state-colors";
 
 const GRID_ROWS = 6;
 const GRID_COLS = 5;
-const CELL_COLORS = ["#538d4e", "#c9b458", "#3a3a3c"];
+const CELL_COLORS = ["hsl(var(--tile-correct))", "hsl(var(--tile-present))", "hsl(var(--tile-absent))"];
 
 interface MainScreenProps {
     onDailyWord: () => void;
@@ -84,7 +84,7 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
     }, []);
 
     return (
-        <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#121213]">
+        <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background">
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-20">
                 <div
                     className="grid gap-1.5"
@@ -101,7 +101,7 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                         return (
                             <div
                                 key={key}
-                                className="rounded-md border border-[#3a3a3c]/20 transition-all duration-1000"
+                                className="rounded-md border border-border/20 transition-all duration-1000"
                                 style={{
                                     backgroundColor: cell ? cell.color : "transparent",
                                     opacity: cell ? cell.opacity : 0.15,
@@ -130,7 +130,7 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                                 }}
                             >
                                 <div
-                                    className="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-[#3a3a3c] bg-[#121213]"
+                                    className="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-border bg-muted"
                                     style={{ backfaceVisibility: "hidden" }}
                                 />
                                 <div
@@ -140,15 +140,14 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                                         backgroundColor:
                                             revealedCount > i
                                                 ? letter.color === "#538d4e"
-                                                    ? "#538d4e"
-                                                    : "#3a3a3c"
-                                                : "#121213",
+                                                    ? "hsl(var(--tile-correct))"
+                                                    : "hsl(var(--tile-absent))"
+                                                : "hsl(var(--background))",
                                     }}
                                 >
                                     <span
-                                        className="font-serif text-3xl font-bold tracking-wide"
+                                        className="font-serif text-3xl font-bold tracking-wide text-foreground"
                                         style={{
-                                            color: "#e5e5e7",
                                             opacity: revealedCount > i ? 1 : 0,
                                         }}
                                     >
@@ -161,7 +160,7 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                 </div>
 
                 <p
-                    className="mb-12 text-sm tracking-widest text-[#818184] uppercase transition-all duration-700"
+                    className="mb-12 text-sm tracking-widest text-muted-foreground uppercase transition-all duration-700"
                     style={{
                         opacity: showContent ? 1 : 0,
                         transform: showContent ? "translateY(0)" : "translateY(10px)",
@@ -178,20 +177,20 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                     }}
                 >
                     <button
-                        className="group flex flex-col overflow-hidden rounded-2xl border border-[#c9b458]/30 bg-[#1a1a1b] p-4 text-left transition-all duration-300 hover:border-[#c9b458] hover:bg-[#1e1e1f]"
+                        className="group flex flex-col overflow-hidden rounded-2xl border border-[hsl(var(--tile-present))]/30 bg-card p-4 text-left transition-all duration-300 hover:border-[hsl(var(--tile-present))] hover:bg-card/95"
                         onMouseEnter={() => setHoveredCard("daily")}
                         onMouseLeave={() => setHoveredCard(null)}
                         onClick={() => onDailyWord()}
                     >
                         <div className="mb-3 flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#c9b458]/20 transition-colors group-hover:bg-[#c9b458]/30">
-                                <CalendarDays size={18} className="text-[#c9b458]" />
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--tile-present))]/20 transition-colors group-hover:bg-[hsl(var(--tile-present))]/30">
+                                <CalendarDays size={18} className="text-[hsl(var(--tile-present))]" />
                             </div>
                             <div className="min-w-0">
-                                <span className="block font-sans text-sm font-bold text-[#e5e5e7]">
+                                <span className="block font-sans text-sm font-bold text-foreground">
                                     Palabra del dia
                                 </span>
-                                <span className="text-[10px] leading-tight text-[#818184]">
+                                <span className="text-[10px] leading-tight text-muted-foreground">
                                     Descubre la palabra de hoy
                                 </span>
                             </div>
@@ -210,12 +209,12 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                                     {row.map((cell, ci) => (
                                         <div
                                             key={ci}
-                                            className="flex h-6 w-6 items-center justify-center rounded text-[9px] font-bold text-[#e5e5e7]"
+                                            className="flex h-6 w-6 items-center justify-center rounded text-[9px] font-bold text-foreground"
                                             style={{
                                                 backgroundColor: STATE_COLORS[cell.state],
                                                 border:
                                                     cell.state === "empty"
-                                                        ? "1px solid #3a3a3c"
+                                                        ? "1px solid hsl(var(--border))"
                                                         : "none",
                                             }}
                                         >
@@ -228,20 +227,20 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                     </button>
 
                     <button
-                        className="group flex flex-col overflow-hidden rounded-2xl border border-[#3a3a3c] bg-[#1a1a1b] p-4 text-left transition-all duration-300 hover:border-[#818184] hover:bg-[#1e1e1f]"
+                        className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 text-left transition-all duration-300 hover:border-muted-foreground hover:bg-card/95"
                         onMouseEnter={() => setHoveredCard("solo")}
                         onMouseLeave={() => setHoveredCard(null)}
                         onClick={() => onSolitaire()}
                     >
                         <div className="mb-3 flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3a3a3c] transition-colors group-hover:bg-[#4a4a4c]">
-                                <User size={18} className="text-[#e5e5e7]" />
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-border transition-colors group-hover:bg-muted">
+                                <User size={18} className="text-foreground" />
                             </div>
                             <div className="min-w-0">
-                                <span className="block font-sans text-sm font-bold text-[#e5e5e7]">
+                                <span className="block font-sans text-sm font-bold text-foreground">
                                     Solitario
                                 </span>
-                                <span className="text-[10px] leading-tight text-[#818184]">
+                                <span className="text-[10px] leading-tight text-muted-foreground">
                                     Practica sin limite
                                 </span>
                             </div>
@@ -260,12 +259,12 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                                     {row.map((cell, ci) => (
                                         <div
                                             key={ci}
-                                            className="flex h-6 w-6 items-center justify-center rounded text-[9px] font-bold text-[#e5e5e7]"
+                                            className="flex h-6 w-6 items-center justify-center rounded text-[9px] font-bold text-foreground"
                                             style={{
                                                 backgroundColor: STATE_COLORS[cell.state],
                                                 border:
                                                     cell.state === "empty"
-                                                        ? "1px solid #3a3a3c"
+                                                        ? "1px solid hsl(var(--border))"
                                                         : "none",
                                             }}
                                         >
@@ -278,20 +277,20 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                     </button>
 
                     <button
-                        className="group flex flex-col overflow-hidden rounded-2xl border border-[#538d4e]/30 bg-[#1a1a1b] p-4 text-left transition-all duration-300 hover:border-[#538d4e] hover:bg-[#1e1e1f]"
+                        className="group flex flex-col overflow-hidden rounded-2xl border border-[hsl(var(--tile-correct))]/30 bg-card p-4 text-left transition-all duration-300 hover:border-[hsl(var(--tile-correct))] hover:bg-card/95"
                         onMouseEnter={() => setHoveredCard("multi")}
                         onMouseLeave={() => setHoveredCard(null)}
                         onClick={() => onMultiplayer()}
                     >
                         <div className="mb-3 flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#538d4e]/20 transition-colors group-hover:bg-[#538d4e]/30">
-                                <Users size={18} className="text-[#538d4e]" />
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--tile-correct))]/20 transition-colors group-hover:bg-[hsl(var(--tile-correct))]/30">
+                                <Users size={18} className="text-[hsl(var(--tile-correct))]" />
                             </div>
                             <div className="min-w-0">
-                                <span className="block font-sans text-sm font-bold text-[#e5e5e7]">
+                                <span className="block font-sans text-sm font-bold text-foreground">
                                     Competitivo
                                 </span>
-                                <span className="text-[10px] leading-tight text-[#818184]">
+                                <span className="text-[10px] leading-tight text-muted-foreground">
                                     Desafia a alguien
                                 </span>
                             </div>
@@ -305,21 +304,21 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                                     hoveredCard === "multi" ? "scale(1.05)" : "scale(1)",
                             }}
                         >
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#3a3a3c] bg-[#2a2a2c]">
-                                <User size={18} className="text-[#e5e5e7]" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-muted">
+                                <User size={18} className="text-foreground" />
                             </div>
-                            <span className="font-sans text-xl font-black text-[#538d4e]">
+                            <span className="font-sans text-xl font-black text-[hsl(var(--tile-correct))]">
                                 VS
                             </span>
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#538d4e]/30 bg-[#538d4e]/10">
-                                <User size={18} className="text-[#538d4e]" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[hsl(var(--tile-correct))]/30 bg-[hsl(var(--tile-correct))]/10">
+                                <User size={18} className="text-[hsl(var(--tile-correct))]" />
                             </div>
                         </div>
                     </button>
                 </div>
 
                 <button
-                    className="mt-10 flex items-center gap-2 text-sm text-[#818184] transition-all duration-700 hover:text-[#e5e5e7]"
+                    className="mt-10 flex items-center gap-2 text-sm text-muted-foreground transition-all duration-700 hover:text-foreground"
                     style={{
                         opacity: showContent ? 1 : 0,
                         transform: showContent ? "translateY(0)" : "translateY(16px)",

@@ -32,14 +32,14 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
 
     return (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#1a1a1b] border border-[#3a3a3c] rounded-lg w-full max-w-md max-h-[90dvh] flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-[#3a3a3c]">
-                    <h2 className="text-white font-bold text-base tracking-wide">
+            <div className="bg-card border border-border rounded-lg w-full max-w-md max-h-[90dvh] flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                    <h2 className="text-foreground font-bold text-base tracking-wide">
                         Registro Competitivo
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-[#818384] hover:text-white transition-colors"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
                         aria-label="Cerrar"
                     >
                         <X className="w-5 h-5" />
@@ -48,7 +48,7 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
 
                 <div className="shrink-0">
                     <div className="px-5 pt-5 pb-4">
-                        <div className="bg-[#121213] border border-[#3a3a3c] rounded-lg p-5 flex flex-col items-center gap-3">
+                        <div className="bg-background border border-border rounded-lg p-5 flex flex-col items-center gap-3">
                             <div
                                 className="w-16 h-16 rounded-full flex items-center justify-center"
                                 style={{
@@ -73,13 +73,13 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                     </div>
 
                     <div className="px-5 pb-4">
-                        <div className="bg-[#121213] border border-[#3a3a3c] rounded-lg p-4">
-                            <h3 className="text-[11px] text-[#818384] uppercase tracking-wider mb-4">
+                        <div className="bg-background border border-border rounded-lg p-4">
+                            <h3 className="text-[11px] text-muted-foreground uppercase tracking-wider mb-4">
                                 ligas
                             </h3>
 
                             <div className="relative mx-3 mb-1">
-                                <div className="h-2 bg-[#3a3a3c] rounded-full overflow-hidden">
+                                <div className="h-2 bg-border rounded-full overflow-hidden">
                                     <div
                                         className="h-full rounded-full transition-all duration-700"
                                         style={{
@@ -102,14 +102,14 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                                                 className="w-3 h-3 rounded-full border-2 cursor-pointer"
                                                 style={{
                                                     borderColor: r.color,
-                                                    backgroundColor: reached ? r.color : "#1a1a1b",
+                                                    backgroundColor: reached ? r.color : "hsl(var(--card))",
                                                 }}
                                             />
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#2a2a2b] border border-[#3a3a3c] rounded text-center opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-10">
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-muted border border-border rounded text-center opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-10">
                                                 <span className="text-[10px] font-bold block" style={{ color: r.color }}>
                                                     {r.label}
                                                 </span>
-                                                <span className="text-[9px] text-[#818384] tabular-nums">
+                                                <span className="text-[9px] text-muted-foreground tabular-nums">
                                                     {r.min}+ copas
                                                 </span>
                                             </div>
@@ -127,7 +127,11 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                                             <span
                                                 className="text-[8px] sm:text-[9px] font-semibold uppercase leading-none"
                                                 style={{
-                                                    color: isActive ? r.color : reached ? r.color + "99" : "#565656",
+                                                    color: isActive
+                                                        ? r.color
+                                                        : reached
+                                                            ? `${r.color}99`
+                                                            : "hsl(var(--muted-foreground))",
                                                 }}
                                             >
                                                 {r.label}
@@ -135,7 +139,7 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                                             <span
                                                 className="text-[7px] sm:text-[8px] tabular-nums leading-none"
                                                 style={{
-                                                    color: isActive ? r.color + "cc" : "#565656",
+                                                    color: isActive ? `${r.color}cc` : "hsl(var(--muted-foreground))",
                                                 }}
                                             >
                                                 {r.min}
@@ -156,7 +160,7 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                                 }
                                 const cupsNeeded = nextRank.min - profile.cups;
                                 return (
-                                    <p className="text-[11px] text-[#818384] text-center mt-3">
+                                    <p className="text-[11px] text-muted-foreground text-center mt-3">
                                         Faltan{" "}
                                         <span className="font-bold tabular-nums" style={{ color: nextRank.color }}>
                                             {cupsNeeded}
@@ -173,35 +177,35 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
 
                     <div className="px-5 pb-4">
                         <div className="grid grid-cols-2 gap-2.5">
-                            <div className="bg-[#121213] border border-[#3a3a3c] rounded-lg p-3 flex flex-col items-center">
+                            <div className="bg-background border border-border rounded-lg p-3 flex flex-col items-center">
                                 <span className="text-xl font-bold text-[#538d4e] tabular-nums">
                                     {profile.wins}
                                 </span>
-                                <span className="text-[10px] text-[#818384] uppercase tracking-wider">
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                                     Victorias
                                 </span>
                             </div>
-                            <div className="bg-[#121213] border border-[#3a3a3c] rounded-lg p-3 flex flex-col items-center">
-                                <span className="text-xl font-bold text-[#d32f2f] tabular-nums">
+                            <div className="bg-background border border-border rounded-lg p-3 flex flex-col items-center">
+                                <span className="text-xl font-bold text-[hsl(var(--destructive))] tabular-nums">
                                     {profile.losses}
                                 </span>
-                                <span className="text-[10px] text-[#818384] uppercase tracking-wider">
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                                     Derrotas
                                 </span>
                             </div>
-                            <div className="bg-[#121213] border border-[#3a3a3c] rounded-lg p-3 flex flex-col items-center">
+                            <div className="bg-background border border-border rounded-lg p-3 flex flex-col items-center">
                                 <span className="text-xl font-bold text-[#b59f3b] tabular-nums">
                                     {profile.draws}
                                 </span>
-                                <span className="text-[10px] text-[#818384] uppercase tracking-wider">
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                                     Empates
                                 </span>
                             </div>
-                            <div className="bg-[#121213] border border-[#3a3a3c] rounded-lg p-3 flex flex-col items-center">
-                                <span className="text-xl font-bold text-[#d7dadc] tabular-nums">
+                            <div className="bg-background border border-border rounded-lg p-3 flex flex-col items-center">
+                                <span className="text-xl font-bold text-foreground tabular-nums">
                                     {profile.gamesPlayed}
                                 </span>
-                                <span className="text-[10px] text-[#818384] uppercase tracking-wider">
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                                     Partidas
                                 </span>
                             </div>
@@ -209,16 +213,16 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                     </div>
 
                     <div className="px-5 pb-4">
-                        <div className="bg-[#121213] border border-[#3a3a3c] rounded-lg p-3">
+                        <div className="bg-background border border-border rounded-lg p-3">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-[11px] text-[#818384] uppercase tracking-wider">
+                                <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
                                     Win Rate
                                 </span>
-                                <span className="text-sm font-bold text-[#d7dadc] tabular-nums">
+                                <span className="text-sm font-bold text-foreground tabular-nums">
                                     {winRate}%
                                 </span>
                             </div>
-                            <div className="h-2 bg-[#3a3a3c] rounded-full overflow-hidden">
+                            <div className="h-2 bg-border rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-[#538d4e] rounded-full transition-all duration-500"
                                     style={{ width: `${winRate}%` }}
@@ -226,9 +230,9 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="px-5 pb-2">
-                        <h3 className="text-[11px] text-[#818384] uppercase tracking-wider">
+                        <h3 className="text-[11px] text-muted-foreground uppercase tracking-wider">
                             Historial de partidas
                         </h3>
                     </div>
@@ -237,8 +241,8 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                 <div className="flex-1 overflow-y-auto min-h-0 px-5 pb-5">
                     {profile.history.length === 0 ? (
                         <div className="text-center py-8">
-                            <Swords className="w-8 h-8 text-[#3a3a3c] mx-auto mb-2" />
-                            <p className="text-[#818384] text-sm">
+                            <Swords className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-muted-foreground text-sm">
                                 Sin partidas registradas
                             </p>
                         </div>
@@ -268,11 +272,11 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[10px] text-[#818384]">
+                                                    <span className="text-[10px] text-muted-foreground">
                                                         {formatDate(item.ts)}
                                                     </span>
                                                     {item.roomCode && (
-                                                        <span className="text-[10px] text-[#818384] font-mono">
+                                                        <span className="text-[10px] text-muted-foreground font-mono">
                                                             Sala: {item.roomCode}
                                                         </span>
                                                     )}

@@ -10,21 +10,21 @@ interface TutorialProps {
 export function Tutorial({ onClose }: TutorialProps) {
   return (
     <div className="fixed inset-0 z-50 backdrop-blur-sm flex items-center justify-center bg-black/70">
-      <div className="bg-[#121213] text-white max-w-md w-full mx-4 p-6 rounded-lg relative max-h-[90vh] overflow-y-auto border border-[#3a3a3c]">
+      <div className="bg-card text-foreground max-w-md w-full mx-4 p-6 rounded-lg relative max-h-[90vh] overflow-y-auto border border-[#3a3a3c]">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-[#818384] hover:text-white transition-colors"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Cerrar tutorial"
         >
           <X className="w-6 h-6" />
         </button>
 
         <h2 className="text-xl font-bold mb-4">Como Jugar</h2>
-        <p className="text-sm text-[#818384] mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           Adivina la palabra en 6 intentos.
         </p>
 
-        <ul className="text-sm text-[#818384] mb-6 list-disc pl-5 flex flex-col gap-1">
+        <ul className="text-sm text-muted-foreground mb-6 list-disc pl-5 flex flex-col gap-1">
           <li>Cada intento debe ser una palabra valida de 5 letras.</li>
           <li>
             El color de las casillas cambiara para mostrar que tan cerca
@@ -42,8 +42,8 @@ export function Tutorial({ onClose }: TutorialProps) {
             <ExampleTile letter="O" variant="default" />
             <ExampleTile letter="S" variant="default" />
           </div>
-          <p className="text-sm text-[#818384]">
-            <strong className="text-white">G</strong> esta en la palabra y en la
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">G</strong> esta en la palabra y en la
             posicion correcta.
           </p>
         </div>
@@ -56,8 +56,8 @@ export function Tutorial({ onClose }: TutorialProps) {
             <ExampleTile letter="G" variant="default" />
             <ExampleTile letter="O" variant="default" />
           </div>
-          <p className="text-sm text-[#818384]">
-            <strong className="text-white">U</strong> esta en la palabra pero en
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">U</strong> esta en la palabra pero en
             una posicion incorrecta.
           </p>
         </div>
@@ -70,15 +70,15 @@ export function Tutorial({ onClose }: TutorialProps) {
             <ExampleTile letter="Y" variant="absent" />
             <ExampleTile letter="A" variant="default" />
           </div>
-          <p className="text-sm text-[#818384]">
-            <strong className="text-white">Y</strong> no esta en la palabra en
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">Y</strong> no esta en la palabra en
             ninguna posicion.
           </p>
         </div>
 
-        <hr className="border-[#3a3a3c] mb-4" />
+        <hr className="border-border mb-4" />
 
-        <p className="text-sm text-center text-[#818384]">
+        <p className="text-sm text-center text-muted-foreground">
           Hay una palabra nueva disponible cada vez que juegas.
         </p>
 

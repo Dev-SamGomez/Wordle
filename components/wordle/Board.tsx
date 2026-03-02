@@ -64,7 +64,7 @@ export function Board({
     for (let j = 0; j < WORD_LENGTH; j++) {
       let letter = "";
       let cellClass =
-        "w-[52px] h-[52px] sm:w-[62px] sm:h-[62px] border-2 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white uppercase transition-all duration-200";
+        "w-[52px] h-[52px] sm:w-[62px] sm:h-[62px] border-2 flex items-center justify-center text-2xl sm:text-3xl font-bold text-foreground uppercase transition-all duration-200";
 
       if (i < guesses.length) {
         letter = guesses[i][j];

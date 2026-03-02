@@ -84,17 +84,17 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <div className="h-dvh bg-[#121213] flex items-center justify-center">
+      <div className="h-dvh bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#538d4e] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <main className="h-dvh bg-[#121213] flex flex-col items-center relative select-none overflow-hidden">
+    <main className="h-dvh bg-background flex flex-col items-center relative select-none overflow-hidden">
 
       <button
-        className="absolute py-2 sm:py-3 left-4 text-[#818384] hover:text-white transition-colors"
+        className="absolute py-2 sm:py-3 left-4 text-muted-foreground hover:text-foreground transition-colors"
         type="button"
         onClick={() => setOpenSidebar(true)}
         aria-label="Abrir menu"
@@ -105,13 +105,13 @@ export default function Home() {
       {!showMainScreen && (
         <>
           <div className="flex flex-col items-center">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-foreground">
               WORDLE
             </h1>
             <span className="text-[10px] sm:text-xs text-[#538d4e] font-medium tracking-wider uppercase">
               {game.gameMode === "multiplayer" ? "competitivo" : game.gameMode === "daily" ? "Palabra del dia" : "Solitario"}
             </span>
-            <div className="flex items-center gap-1 text-[#ac461d]" title={game.gameMode === "multiplayer" ? "" : game.gameMode === "daily" ? "Racha Diaria" : "Racha Solitario"}>
+            <div className="flex items-center gap-1 text-[hsl(var(--destructive))]" title={game.gameMode === "multiplayer" ? "" : game.gameMode === "daily" ? "Racha Diaria" : "Racha Solitario"}>
               {
                 game.gameMode != "multiplayer" && (
                   <>
@@ -178,7 +178,7 @@ export default function Home() {
                   <div className="flex justify-center">
                     <button
                       onClick={game.gameMode === "daily" ? game.resetGame : game.resetGame}
-                      className="px-6 py-3 bg-white text-[#121213] font-bold rounded hover:bg-[#e0e0e0] transition-colors text-sm"
+                      className="px-6 py-3 bg-accent text-accent-foreground font-bold rounded hover:brightness-110 transition-colors text-sm"
                     >
                       {game.gameMode === "daily" ? "Jugar solitario" : "Jugar de nuevo"}
                     </button>

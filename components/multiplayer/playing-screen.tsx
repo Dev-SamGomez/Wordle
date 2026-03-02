@@ -14,20 +14,20 @@ const PlayingScreen = ({
     console.log("STATUS:", game.gameStatus);
     console.log("PlayingScreen opponent:", game.opponentName, "my:", game.myName);
     return (
-        <div className="flex min-h-screen flex-col items-center bg-[#121213] p-4">
+        <div className="flex min-h-screen flex-col items-center bg-background p-4">
             <div className="flex items-stretch gap-3">
-                <div className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-[#3a3a3c] bg-[#2a2a2c] py-3 px-2">
-                    <span className="text-xs font-semibold text-[#e5e5e7]">Tu</span>
+                <div className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-border bg-muted py-3 px-2">
+                    <span className="text-xs font-semibold text-foreground">Tu</span>
                     <RoundDots
                         results={game.roundResultsPlayer}
                         totalRounds={3}
                     />
                 </div>
                 <div className="flex items-center">
-                    <span className="text-xs font-bold text-[#818184]">VS</span>
+                    <span className="text-xs font-bold text-muted-foreground">VS</span>
                 </div>
-                <div className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-[#3a3a3c] bg-[#2a2a2c] py-3 px-2">
-                    <span className="text-xs font-semibold text-[#e5e5e7]">
+                <div className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-border bg-muted py-3 px-2">
+                    <span className="text-xs font-semibold text-foreground">
                         {game.opponentName || "Rival"}
                     </span>
                     <RoundDots
@@ -36,7 +36,7 @@ const PlayingScreen = ({
                     />
                 </div>
             </div>
-            <div className="pt-5 text-xs text-[#ac461d]">
+            <div className="pt-5 text-xs text-[hsl(var(--destructive))]">
                 Palabra {game.currentWordIndex < 3 ? game.currentWordIndex + 1 : game.currentWordIndex}/3
             </div>
             <div className="flex flex-col p-10 items-center sm:gap-4 justify-center min-h-0">

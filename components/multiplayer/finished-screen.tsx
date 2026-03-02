@@ -57,9 +57,9 @@ const FinishedScreen = ({
     }[result];
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#121213] p-4">
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
             <div className="w-full max-w-sm">
-                <div className="overflow-hidden rounded-2xl border border-[#3a3a3c] bg-[#1a1a1b] shadow-xl shadow-black/30">
+                <div className="overflow-hidden rounded-2xl border border-border bg-muted shadow-xl shadow-black/30">
                     <div className="h-1" style={{ backgroundColor: config.accentColor }} />
 
                     <div className="px-6 pb-6 pt-8">
@@ -72,30 +72,30 @@ const FinishedScreen = ({
                             {config.icon}
                         </div>
 
-                        <h2 className="text-center text-2xl font-bold text-white">
+                        <h2 className="text-center text-2xl font-bold text-foreground">
                             {config.title}
                         </h2>
-                        <p className="mt-1.5 text-center text-sm text-[#818184]">
+                        <p className="mt-1.5 text-center text-sm text-muted-foreground">
                             {config.message}
                         </p>
 
-                        <div className="mt-6 rounded-xl border border-[#3a3a3c] bg-[#121213] p-4">
-                            <p className="mb-3 text-center text-[10px] font-medium uppercase tracking-widest text-[#818184]">
+                        <div className="mt-6 rounded-xl border border-border bg-muted p-4">
+                            <p className="mb-3 text-center text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                                 Resultado por ronda
                             </p>
                             <div className="flex items-stretch gap-3">
-                                <div className="flex flex-1 flex-col items-center gap-2 rounded-lg bg-[#1a1a1b] py-2.5">
-                                    <span className="text-[11px] font-semibold text-[#e5e5e7]">Tu</span>
+                                <div className="flex flex-1 flex-col items-center gap-2 rounded-lg bg-muted py-2.5">
+                                    <span className="text-[11px] font-semibold text-foreground">Tu</span>
                                     <RoundDots
                                         results={roundResultsPlayer}
                                         totalRounds={3}
                                     />
                                 </div>
                                 <div className="flex items-center">
-                                    <span className="text-[10px] font-bold text-[#3a3a3c]">VS</span>
+                                    <span className="text-[10px] font-bold text-foreground">VS</span>
                                 </div>
-                                <div className="flex flex-1 flex-col items-center gap-2 rounded-lg bg-[#1a1a1b] py-2.5">
-                                    <span className="text-[11px] font-semibold text-[#e5e5e7]">Rival</span>
+                                <div className="flex flex-1 flex-col items-center gap-2 rounded-lg bg-muted py-2.5">
+                                    <span className="text-[11px] font-semibold text-muted-foreground">Rival</span>
                                     <RoundDots
                                         results={roundResultsRival}
                                         totalRounds={3}
@@ -108,14 +108,14 @@ const FinishedScreen = ({
                             <button
                                 onClick={onRematch}
                                 disabled={rematchStatus === "waiting" || rematchStatus === "countdown"}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#538d4e] py-3 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+                                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#538d4e] py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
                             >
                                 <RotateCcw className="h-4 w-4" />
                                 {rematchStatus === "waiting" ? "Esperando..." : "Revancha"}
                             </button>
                             <button
                                 onClick={onLeave}
-                                className="flex items-center justify-center gap-2 rounded-xl border border-[#3a3a3c] bg-[#2a2a2c] px-5 py-3 text-sm font-semibold text-[#e5e5e7] transition-all hover:bg-[#3a3a3c] active:scale-[0.98]"
+                                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-muted px-5 py-3 text-sm font-semibold text-foreground transition-all hover:bg-muted active:scale-[0.98]"
                             >
                                 <LogOut className="h-4 w-4" />
                                 Salir
