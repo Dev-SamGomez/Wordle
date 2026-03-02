@@ -13,6 +13,11 @@ const config: Config = {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        "tile-correct": "hsl(var(--tile-correct))",
+        "tile-present": "hsl(var(--tile-present))",
+        "tile-absent": "hsl(var(--tile-absent))",
+        "tile-border": "hsl(var(--tile-border))",
+        "tile-border-active": "hsl(var(--tile-border-active))",
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',

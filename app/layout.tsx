@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
 import './globals.css'
+import { cookies } from 'next/headers'
 
 const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
@@ -20,13 +21,39 @@ export const metadata: Metadata = {
   description: 'Adivina la palabra de 5 letras en 6 intentos. Juego tipo Wordle completamente en español.',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const theme = (await cookies()).get("theme")?.value as "light" | "dark" | "system" | undefined;
+
+  const serverClass =
+    theme === "dark"
+      ? "dark"
+      : theme === "light"
+        ? ""
+        : "";
+
+  const themeBootScript = `
+  (function () {
+    try {
+      var raw = localStorage.getItem('wordle-settings');
+      var s = raw ? JSON.parse(raw) : null;
+      var theme = (s && s.theme) ? s.theme : '${theme ?? "system"}';
+      var isDark = theme === 'dark' ? true :
+                    theme === 'light' ? false :
+                    window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.toggle('dark', isDark);
+    } catch (e) {}
+  })();
+  `;
+
   return (
-    <html lang="es">
+    <html lang="es" className={serverClass} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className="font-sans antialiased">{children}</body>
     </html>
   )

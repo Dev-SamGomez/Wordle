@@ -8,7 +8,7 @@ export type { LetterState };
 export type Evaluation = LetterState;
 export type GameStatus = "playing" | "won" | "lost";
 export type KeyboardColors = Record<string, LetterState>;
-export type GameMode = "solitaire" | "daily";
+export type GameMode = "solitaire" | "daily" | "multiplayer";
 
 export interface GameState {
   solution: string;
@@ -74,6 +74,21 @@ const loadStreaks = (): Streaks => {
     };
   } catch {
     return { ...DEFAULT_STREAKS };
+  }
+}
+
+const COMP_STORAGE_KEY = "wordle-competitive-profile-v1";
+
+function loadCompetitiveCups(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(COMP_STORAGE_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    const cups = Number(parsed?.cups ?? 0);
+    return Number.isFinite(cups) && cups > 0 ? cups : 0;
+  } catch {
+    return 0;
   }
 }
 
@@ -146,6 +161,7 @@ const getRandomWord = (usedWords: Set<string>): string => {
 export function useGame() {
   const usedWordsRef = useRef<Set<string>>(new Set());
   const streakCountedRef = useRef(false);
+  const lastEmittedRevealRef = useRef<string | null>(null);
 
   const [state, setState] = useState<GameState>(() => {
     const word = getRandomWord(usedWordsRef.current);
@@ -296,33 +312,86 @@ export function useGame() {
         return { ...prev, revealingRow: null };
       }
 
-      const isWin = lastEvaluation.every((s) => s === "correct");
-      const isLoss = !isWin && prev.guesses.length >= 6;
+      const rowIndex = prev.revealingRow;
+      const guess = prev.guesses[prev.guesses.length - 1] ?? "";
+      const solution = prev.solution;
+      const wasSolved = lastEvaluation.every((s) => s === "correct");
+      const exhausted = !wasSolved && prev.guesses.length >= 6;
+      const wordFinished = wasSolved || exhausted;
+
+      const revealKey = `${solution}|${rowIndex}|${guess}`;
+      if (lastEmittedRevealRef.current !== revealKey) {
+        lastEmittedRevealRef.current = revealKey;
+        revealSubsRef.current.forEach((cb) => {
+          try {
+            cb({
+              rowIndex,
+              evaluation: lastEvaluation,
+              guess,
+              solution,
+              wasSolved,
+              exhausted,
+              wordFinished,
+            });
+          } catch { }
+        });
+      }
+
+      const isWin = wasSolved;
+      const isLoss = exhausted;
 
       let newStreaks = prev.streaks;
 
-      if ((isWin || isLoss) && !streakCountedRef.current) {
-        if (prev.gameMode === "daily") {
-          newStreaks = updateDailyStreak(isWin);
-        } else {
-          newStreaks = updateSolitaireStreak(isWin);
+      if (prev.gameMode !== "multiplayer") {
+        if ((isWin || isLoss) && !streakCountedRef.current) {
+          if (prev.gameMode === "daily") {
+            newStreaks = updateDailyStreak(isWin);
+            streakCountedRef.current = true;
+          } else if (prev.gameMode === "solitaire") {
+            newStreaks = updateSolitaireStreak(isWin);
+            streakCountedRef.current = true;
+          }
         }
-
-        streakCountedRef.current = true;
       }
 
       return {
         ...prev,
         revealingRow: null,
-        gameStatus: isWin ? "won" : isLoss ? "lost" : "playing",
+        gameStatus:
+          prev.gameMode === "multiplayer"
+            ? "playing"
+            : isWin
+              ? "won"
+              : isLoss
+                ? "lost"
+                : "playing",
         streaks: newStreaks,
         toastMessage: isWin
           ? "Ganaste!"
-          : isLoss
-            ? `Perdiste, Era: ${prev.solution}`
+          : (prev.gameMode !== "multiplayer" && isLoss)
+            ? `Perdiste, Era: ${solution}`
             : "",
       };
     });
+  }, []);
+
+  const startMultiplayerRound = useCallback((solutionWord: string) => {
+    streakCountedRef.current = false;
+    const currentStreaks = loadStreaks();
+    setState((prev) => ({
+      ...prev,
+      solution: solutionWord.toUpperCase(),
+      guesses: [],
+      evaluations: [],
+      currentGuess: "",
+      currentRow: 0,
+      gameStatus: "playing",
+      toastMessage: "",
+      keyboardColors: {},
+      revealingRow: null,
+      gameMode: "multiplayer",
+      streaks: currentStreaks,
+    }));
   }, []);
 
   const resetGame = useCallback(() => {
@@ -386,6 +455,55 @@ export function useGame() {
     }
   }, []);
 
+  const getCompetitiveCups = useCallback((): number => {
+    return loadCompetitiveCups();
+  }, []);
+
+  const multiplayerMode = useCallback(() => {
+    const currentStreaks = loadStreaks();
+    setState({
+      solution: "",
+      guesses: [],
+      evaluations: [],
+      currentGuess: "",
+      currentRow: 0,
+      gameStatus: "playing",
+      toastMessage: "",
+      keyboardColors: {},
+      revealingRow: null,
+      gameMode: "multiplayer",
+      streaks: currentStreaks,
+    });
+  }, [])
+
+
+  const revealSubsRef = useRef<
+    Set<(info: {
+      rowIndex: number;
+      evaluation: LetterState[];
+      guess: string;
+      solution: string;
+      wasSolved: boolean;
+      exhausted: boolean;
+      wordFinished: boolean;
+    }) => void>
+  >(new Set());
+
+  const onRevealComplete = useCallback((cb: (info: {
+    rowIndex: number;
+    evaluation: LetterState[];
+    guess: string;
+    solution: string;
+    wasSolved: boolean;
+    exhausted: boolean;
+    wordFinished: boolean;
+  }) => void) => {
+    revealSubsRef.current.add(cb);
+    return () => {
+      revealSubsRef.current.delete(cb);
+    };
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -414,5 +532,9 @@ export function useGame() {
     resetGame,
     startDailyGame,
     finishReveal,
+    multiplayerMode,
+    onRevealComplete,
+    startMultiplayerRound,
+    getCompetitiveCups
   };
 }
