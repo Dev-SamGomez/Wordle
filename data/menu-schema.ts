@@ -13,4 +13,5 @@ export const menuItems: MenuItem[] = [
             { label: "Top mejores jugadores", action: "leader-board" },
         ],
     },
+    { label: "Configuracion", action: "config" }
 ];

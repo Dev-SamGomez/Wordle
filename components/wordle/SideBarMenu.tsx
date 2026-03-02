@@ -20,6 +20,7 @@ interface SidebarMenuProps {
     onMultiplayer: () => void;
     onCompetitiveRecord: () => void;
     onLeaderBoard: () => void;
+    onConfig: () => void;
     cups: number;
     streakDaily: number;
     streakSolitarie: number;
@@ -35,6 +36,7 @@ export default function SidebarMenu({
     onMultiplayer,
     onCompetitiveRecord,
     onLeaderBoard,
+    onConfig,
     cups,
     streakDaily,
     streakSolitarie
@@ -68,6 +70,10 @@ export default function SidebarMenu({
                 break;
             case "leader-board":
                 onLeaderBoard();
+                onOpenChange(false);
+                break;
+            case "config":
+                onConfig();
                 onOpenChange(false);
                 break;
         }

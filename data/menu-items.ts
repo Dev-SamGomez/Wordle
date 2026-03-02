@@ -5,7 +5,8 @@ export type MenuAction =
     | "solitaire"
     | "multiplayer"
     | "competitive-record"
-    | "leader-board";
+    | "leader-board"
+    | "config";
 
 export interface MenuItem {
     label: string;

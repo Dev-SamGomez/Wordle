@@ -12,6 +12,7 @@ import MultiplayerHome from "@/components/multiplayer/multiplayer-home";
 import MainScreen from "@/components/main";
 import CompetitiveRecord from "@/components/wordle/HistoryCompetitive";
 import Leaderboard from "@/components/wordle/Leaderboard";
+import SettingsScreen from "@/components/wordle/ConfigScreen";
 
 export default function Home() {
   const [showTutorial, setShowTutorial] = useState(false);
@@ -19,6 +20,7 @@ export default function Home() {
   const [showHistoryCompetitive, setShowHistoryCompetitive] = useState(false);
   const [showMainScreen, setShowMainScreen] = useState<boolean>(true);
   const [showLeaderBoard, setShowLeaderBoard] = useState<boolean>(false);
+  const [showConfig, setShowConfig] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
   const [openSidebar, setOpenSidebar] = useState(false);
 
@@ -46,6 +48,10 @@ export default function Home() {
     setShowLeaderBoard(false);
   };
 
+  const handleCloseConfig = () => {
+    setShowConfig(false);
+  };
+
   const handleMultiPlayer = () => {
     if (showMainScreen) setShowMainScreen(prev => !prev)
     game.multiplayerMode()
@@ -70,6 +76,10 @@ export default function Home() {
 
   const handleLeaderBoard = () => {
     setShowLeaderBoard(true)
+  }
+
+  const handleConfig = () => {
+    setShowConfig(true)
   }
 
   if (!mounted) {
@@ -127,6 +137,7 @@ export default function Home() {
         onMultiplayer={handleMultiPlayer}
         onCompetitiveRecord={handleHistoryCompetitive}
         onLeaderBoard={handleLeaderBoard}
+        onConfig={handleConfig}
         cups={cups}
         streakDaily={game.streaks?.dailyStreak ?? 0}
         streakSolitarie={game.streaks?.solitaireStreak ?? 0}
@@ -189,6 +200,7 @@ export default function Home() {
       {showTutorial && <Tutorial onClose={handleCloseTutorial} />}
       {showHistoryCompetitive && <CompetitiveRecord onClose={handleCloseHistoryCompetitive} />}
       {showLeaderBoard && <Leaderboard onClose={handleCloseLeaderBoard} />}
+      {showConfig && <SettingsScreen onClose={handleCloseConfig} />}
     </main>
   );
 }
