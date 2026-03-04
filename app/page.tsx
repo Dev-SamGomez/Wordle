@@ -27,6 +27,16 @@ export default function Home() {
   const game = useGame();
   const cups = game.getCompetitiveCups();
 
+
+  const isMultiplayer = game.gameMode === "multiplayer";
+  const isDaily = game.gameMode === "daily";
+  const streakValue = isDaily
+    ? (game.streaks?.dailyStreak ?? 0)
+    : (game.streaks?.solitaireStreak ?? 0);
+
+  const isHot = !isMultiplayer && streakValue > 0;
+  const isAbsent = !isMultiplayer && streakValue === 0;
+
   useEffect(() => {
     setMounted(true);
     const hasSeenTutorial = localStorage.getItem("wordle-tutorial-seen");
@@ -111,18 +121,48 @@ export default function Home() {
             <span className="text-[10px] sm:text-xs text-[hsl(var(--tile-correct))] font-medium tracking-wider uppercase">
               {game.gameMode === "multiplayer" ? "competitivo" : game.gameMode === "daily" ? "Palabra del dia" : "Solitario"}
             </span>
-            <div className="flex items-center gap-1 text-[hsl(var(--tile-correct))]" title={game.gameMode === "multiplayer" ? "" : game.gameMode === "daily" ? "Racha Diaria" : "Racha Solitario"}>
-              {
-                game.gameMode != "multiplayer" && (
-                  <>
-                    <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span className="text-sm sm:text-base font-bold tabular-nums">
-                      {game.gameMode === "daily" ? (game.streaks?.dailyStreak ?? 0) : (game.streaks?.solitaireStreak ?? 0)}
-                    </span>
-                  </>
-                )
+
+            <div
+              className={[
+                "flex items-center gap-1",
+                isHot
+                  ? "text-red-500"
+                  : "text-muted-foreground",
+              ].join(" ")}
+              title={
+                isMultiplayer
+                  ? ""
+                  : isDaily
+                    ? "Racha Diaria"
+                    : "Racha Solitario"
               }
+            >
+              {!isMultiplayer && (
+                <>
+                  <span className="relative inline-flex items-center justify-center">
+                    <Flame
+                      className={[
+                        "w-4 h-4 sm:w-5 sm:h-5",
+                        isHot ? "animate-flame text-red-500 drop-shadow-[0_0_6px_rgba(255,80,80,0.6)]" : "text-muted-foreground"
+                      ].join(" ")}
+                    />
+                    {isHot && (
+                      <span className="pointer-events-none absolute inset-0 rounded-full blur-[3px] animate-ember bg-[radial-gradient(ellipse_at_center,rgba(255,120,80,0.45),rgba(255,0,0,0)_60%)]" />
+                    )}
+                  </span>
+
+                  <span
+                    className={[
+                      "text-sm sm:text-base font-bold tabular-nums",
+                      isAbsent ? "text-muted-foreground" : "text-red-500"
+                    ].join(" ")}
+                  >
+                    {streakValue}
+                  </span>
+                </>
+              )}
             </div>
+
           </div>
         </>
       )}

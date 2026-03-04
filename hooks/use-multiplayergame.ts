@@ -3,10 +3,18 @@ import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useGame } from "./use-game";
 import type { LetterState } from "@/utils/evaluateWord";
-import { applyCompetitiveResult, loadCompetitiveProfile, saveCompetitiveProfile } from "@/utils/competitive";
+import { applyCompetitiveResult } from "@/utils/competitive";
 import { CompetitiveProfile, CompetitiveResult } from "@/data/competitive-res";
 import { RivalUpdate } from "@/data/rival-update-type";
 import { GameFinishedPayload } from "@/data/game-finished-payload-type";
+import { getCurrentUser } from "@/lib/auth-client";
+import { getCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/utils/competitive-firestore";
+
+const EMPTY_PROFILE: CompetitiveProfile = {
+    cups: 0, wins: 0, losses: 0, draws: 0, gamesPlayed: 0,
+    lastUpdated: new Date().toISOString(),
+    history: [],
+};
 
 export function useMultiplayer() {
     const game = useGame();
@@ -40,9 +48,22 @@ export function useMultiplayer() {
     const lastHandledKeyRef = useRef<string | null>(null);
     const subscribedRef = useRef(false);
 
-    const [profile, setProfile] = useState<CompetitiveProfile>(() => loadCompetitiveProfile());
+    const [profile, setProfile] = useState<CompetitiveProfile>(EMPTY_PROFILE);
     const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
     const finishAppliedRef = useRef(false);
+
+    const getDefaultName = () => {
+        const u = getCurrentUser();
+        return u?.displayName ?? u?.email?.split("@")[0] ?? "Jugador";
+    };
+
+    useEffect(() => {
+        const user = getCurrentUser();
+        console.log(user)
+        if (!user) return;
+
+        getCompetitiveProfile(user.uid).then(setProfile);
+    }, []);
 
     useEffect(() => {
         const s = io(process.env.NEXT_PUBLIC_SOCKET_URL);
@@ -166,7 +187,13 @@ export function useMultiplayer() {
                     roomCode: roomId,
                     opponentId: data.scores?.find(s => s.socketId !== myId)?.socketId ?? null,
                 });
-                saveCompetitiveProfile(updated);
+
+                const user = getCurrentUser();
+                if (user) {
+                    saveCompetitiveProfileToFirestore(user.uid, updated);
+                    updateLeaderboardFromProfile(user.uid, updated);
+                }
+
                 setLastMatchDelta(updated.cups - prev.cups);
                 return updated;
             });
@@ -267,14 +294,21 @@ export function useMultiplayer() {
         }
     }, [game]);
 
-    const createRoom = (name: string) => {
-        setMyName(name);
-        socketRef.current?.emit("create_room", { name })
+    const createRoom = (name?: string) => {
+        const u = getCurrentUser();
+        if (!u) return;
+        const finalName = (name && name.trim()) || getDefaultName();
+        setMyName(finalName);
+        socketRef.current?.emit("create_room", { name: finalName });
     };
-    const joinRoom = (code: string, name: string) => {
+
+    const joinRoom = (code: string, name?: string) => {
+        const u = getCurrentUser();
+        if (!u) return;
+        const finalName = (name && name.trim()) || getDefaultName();
         setRoomId(code);
-        setMyName(name);
-        socketRef.current?.emit("join_room", { code, name });
+        setMyName(finalName);
+        socketRef.current?.emit("join_room", { code, name: finalName });
     };
 
     const requestRematch = () => {
@@ -293,11 +327,14 @@ export function useMultiplayer() {
         setRematchStatus("idle");
     };
 
-    const findMatch = (name: string, cups?: number) => {
+    const findMatch = (name?: string, cups?: number) => {
+        const u = getCurrentUser();
+        if (!u) return;
+        const finalName = (name && name.trim()) || getDefaultName();
         setStatus("queueing");
         setRoomId(null);
-        setMyName(name);
-        socketRef.current?.emit("find_match", { name, cups });
+        setMyName(finalName);
+        socketRef.current?.emit("find_match", { name: finalName, cups });
     };
 
     const cancelFind = () => {
@@ -346,12 +383,6 @@ export function useMultiplayer() {
             gamesPlayed: profile.gamesPlayed,
             lastMatchDelta,
             history: profile.history,
-        },
-        resetCompetitiveProfile: () => {
-            const fresh = loadCompetitiveProfile();
-            saveCompetitiveProfile(fresh);
-            setProfile(fresh);
-            setLastMatchDelta(null);
         },
     };
 }

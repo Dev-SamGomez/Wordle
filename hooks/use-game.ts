@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { WORDS } from "@/data/words";
 import { evaluateGuess, type LetterState } from "@/utils/evaluateWord";
+import { getCurrentUser } from "@/lib/auth-client";
+import { getCompetitiveProfile } from "@/utils/competitive-firestore";
 
 export type { LetterState };
 export type Evaluation = LetterState;
@@ -79,18 +81,7 @@ const loadStreaks = (): Streaks => {
 
 const COMP_STORAGE_KEY = "wordle-competitive-profile-v1";
 
-function loadCompetitiveCups(): number {
-  if (typeof window === "undefined") return 0;
-  try {
-    const raw = localStorage.getItem(COMP_STORAGE_KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    const cups = Number(parsed?.cups ?? 0);
-    return Number.isFinite(cups) && cups > 0 ? cups : 0;
-  } catch {
-    return 0;
-  }
-}
+
 
 const saveStreaks = (streaks: Streaks) => {
   localStorage.setItem("wordle-streaks", JSON.stringify(streaks));
@@ -162,6 +153,7 @@ export function useGame() {
   const usedWordsRef = useRef<Set<string>>(new Set());
   const streakCountedRef = useRef(false);
   const lastEmittedRevealRef = useRef<string | null>(null);
+  const [competitiveCups, setCompetitiveCups] = useState<number>(0);
 
   const [state, setState] = useState<GameState>(() => {
     const word = getRandomWord(usedWordsRef.current);
@@ -180,6 +172,27 @@ export function useGame() {
       streaks: { ...DEFAULT_STREAKS },
     };
   });
+
+
+  useEffect(() => {
+    const u = getCurrentUser();
+    if (!u) {
+      setCompetitiveCups(0);
+      return;
+    }
+    let alive = true;
+    getCompetitiveProfile(u.uid)
+      .then(p => { if (alive) setCompetitiveCups(p.cups ?? 0); })
+      .catch(() => { if (alive) setCompetitiveCups(0); });
+    return () => { alive = false; };
+  }, []);
+
+
+  useEffect(() => {
+    const saved = loadStreaks();
+    setState((prev) => ({ ...prev, streaks: saved }));
+  }, []);
+
 
   useEffect(() => {
     const saved = loadStreaks();
@@ -456,7 +469,7 @@ export function useGame() {
   }, []);
 
   const getCompetitiveCups = useCallback((): number => {
-    return loadCompetitiveCups();
+    return competitiveCups;
   }, []);
 
   const multiplayerMode = useCallback(() => {
