@@ -347,6 +347,11 @@ io.on("connection", (socket: Socket) => {
 
         if (data.wordIndex !== current) {
             console.warn("Ignoring out-of-order/duplicate row_resolved", data, "expected", current);
+            socket.emit("row_ack", {
+                accepted: false,
+                expected: current,
+                received: data.wordIndex,
+            });
             return;
         }
 
@@ -361,6 +366,13 @@ io.on("connection", (socket: Socket) => {
                 player.finishedAt = Date.now();
             }
         }
+
+        socket.emit("row_ack", {
+            accepted: true,
+            currentWordIndex: player.currentWordIndex ?? 0,
+            wordJustFinished: data.wordIndex,
+            wasSolved: data.wasSolved,
+        });
 
         socket.to(room.id).emit("rival_progress", {
             solvedCount: player.score ?? player.currentWordIndex ?? 0,

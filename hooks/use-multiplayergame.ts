@@ -47,6 +47,7 @@ export function useMultiplayer() {
 
     const lastHandledKeyRef = useRef<string | null>(null);
     const subscribedRef = useRef(false);
+    const processedRevealKeysRef = useRef<Set<string>>(new Set());
 
     const [profile, setProfile] = useState<CompetitiveProfile>(EMPTY_PROFILE);
     const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
@@ -93,6 +94,7 @@ export function useMultiplayer() {
 
         s.on("room_ready", () => {
             finishAppliedRef.current = false;
+            processedRevealKeysRef.current.clear();
             setLastMatchDelta(null);
             setRematchStatus("countdown");
             setStatus("countdown");
@@ -114,6 +116,7 @@ export function useMultiplayer() {
             idxRef.current = 0;
             lastHandledKeyRef.current = null;
             finishAppliedRef.current = false;
+            processedRevealKeysRef.current.clear();
             setLastMatchDelta(null);
 
             game.multiplayerMode();
@@ -248,51 +251,106 @@ export function useMultiplayer() {
     }, []);
 
     useEffect(() => {
+        const s = socketRef.current;
+        if (!s) return;
+
+        const onRowAck = (payload: {
+            accepted: boolean;
+            currentWordIndex?: number;
+            expected?: number;
+            received?: number;
+            wordJustFinished?: number;
+            wasSolved?: boolean;
+        }) => {
+            if (!payload) return;
+
+            if (!payload.accepted) {
+                console.warn("[SOCKET] row_ack rejected", payload);
+                return;
+            }
+
+            const next = payload.currentWordIndex ?? idxRef.current;
+            if (next > idxRef.current && next < wordsRef.current.length) {
+                idxRef.current = next;
+                processedRevealKeysRef.current.clear();
+                game.startMultiplayerRound(wordsRef.current[next]);
+            }
+
+        };
+
+        s.on("row_ack", onRowAck);
+        return () => {
+            s.off("row_ack", onRowAck);
+        };
+    }, [game]);
+
+    useEffect(() => {
         if (subscribedRef.current) return;
         subscribedRef.current = true;
 
-        const unsub = game.onRevealComplete(({ rowIndex, wasSolved, evaluation, wordFinished, exhausted }) => {
-            const s = socketRef.current;
-            if (!s) return;
+        const unsub = game.onRevealComplete(
+            ({ rowIndex, wasSolved, evaluation, wordFinished, exhausted, solution, guess }) => {
+                const s = socketRef.current;
+                if (!s) return;
 
-            const wIdx = idxRef.current;
-            const key = `${wIdx}:${rowIndex}`;
+                const sol = solution?.toUpperCase?.() ?? solution;
+                const dedupeKey = `${sol}:${rowIndex}`;
+                if (!wordFinished) return;
+                if (processedRevealKeysRef.current.has(dedupeKey)) return;
+                processedRevealKeysRef.current.add(dedupeKey);
 
-            if (lastHandledKeyRef.current === key) return;
-            lastHandledKeyRef.current = key;
+                let wIdxFromSolution = wordsRef.current.findIndex((w) => w === sol);
+                if (wIdxFromSolution < 0) {
+                    wIdxFromSolution = idxRef.current;
+                }
 
-            if (wordFinished) {
                 s.emit("row_resolved", {
                     code: roomId,
-                    wordIndex: wIdx,
+                    wordIndex: wIdxFromSolution,
                     wasSolved,
                     lastEval: evaluation,
                     wordFinished: true,
                 });
 
-                setRoundResultsPlayer(prev => {
+                setRoundResultsPlayer((prev) => {
                     const next = [...prev];
-                    next[wIdx] = wasSolved ? "win" : "loss";
+                    next[wIdxFromSolution] = wasSolved ? "win" : "loss";
                     return next;
                 });
+                if (wasSolved) setScore((x) => x + 1);
 
-                if (wasSolved)
-                    setScore((x) => x + 1);
+                console.log("[REVEAL]", {
+                    sol,
+                    rowIndex,
+                    wordFinished,
+                    wasSolved,
+                    idxRef: idxRef.current,
+                    wIdxFromSolution,
+                    deduped: processedRevealKeysRef.current.has(dedupeKey),
+                });
 
-                const next = wIdx + 1;
-                idxRef.current = next;
+                // if (wIdxFromSolution === idxRef.current) {
+                //     const next = wIdxFromSolution + 1;
+
+                //     idxRef.current = next;
+
+                //     if (next < wordsRef.current.length) {
+                //         game.startMultiplayerRound(wordsRef.current[next]);
+
+                //         processedRevealKeysRef.current.clear();
+                //     }
+                // }
+
                 lastHandledKeyRef.current = null;
-
-                if (next < wordsRef.current.length)
-                    game.startMultiplayerRound(wordsRef.current[next]);
             }
-        });
+        );
 
         return () => {
             unsub?.();
             subscribedRef.current = false;
-        }
+        };
     }, [game]);
+
 
     const createRoom = (name?: string) => {
         const u = getCurrentUser();
