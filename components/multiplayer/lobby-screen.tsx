@@ -55,7 +55,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                     <div className="pt-5 flex items-center justify-center gap-2">
                         <span className="inline-flex items-center gap-1 text-base font-bold text-foreground tabular-nums">
                             <Trophy className="h-4 w-4 text-[#c9b458]" />
-                            {game.competitive.cups}
+                            {game.getCompetitiveCups()}
                         </span>
 
                         {typeof game.competitive.lastMatchDelta === "number" && (
