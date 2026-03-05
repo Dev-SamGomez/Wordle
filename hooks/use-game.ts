@@ -84,7 +84,26 @@ const loadStreaks = (): Streaks => {
 
 const COMP_STORAGE_KEY = "wordle-competitive-profile-v1";
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
 
+  if (target.isContentEditable) return true;
+
+  const editable = target.closest("input, textarea, [contenteditable=''], [contenteditable='true']");
+  if (editable) {
+    if (editable instanceof HTMLInputElement || editable instanceof HTMLTextAreaElement) {
+      if (editable.disabled || editable.readOnly) return false;
+    }
+    return true;
+  }
+
+  const role = target.getAttribute("role");
+  if (role === "textbox" || role === "searchbox" || role === "combobox") return true;
+
+  if (target.closest("[data-ignore-global-keys='true']")) return true;
+
+  return false;
+}
 
 const saveStreaks = (streaks: Streaks) => {
   localStorage.setItem("wordle-streaks", JSON.stringify(streaks));
@@ -530,6 +549,7 @@ export function useGame() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (e.key === "Enter") {
