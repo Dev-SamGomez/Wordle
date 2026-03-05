@@ -15,13 +15,6 @@ export default function MultiplayerHome() {
     const game = useMultiplayer();
     const [showAuth, setShowAuth] = useState(false);
     const [name, setName] = useState("");
-    
-    console.log(authLoading)
-
-    // useEffect(() => {
-    //     if (!authLoading)
-    //           setShowAuth(!user)
-    // }, [authLoading, user])
 
     useEffect(() => {
         if (!user) return;

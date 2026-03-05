@@ -21,8 +21,7 @@ const FinishedScreen = ({
     onLeave,
 }: FinishedScreenProps) => {
     let result: "win" | "lose" | "draw";
-    console.log("winnerSocketId", winnerSocketId)
-    console.log("mySocketId", mySocketId)
+    
     if (!winnerSocketId || winnerSocketId === "draw") {
         result = "draw";
     } else {

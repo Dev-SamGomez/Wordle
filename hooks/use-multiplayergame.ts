@@ -60,7 +60,6 @@ export function useMultiplayer() {
 
     useEffect(() => {
         const user = getCurrentUser();
-        console.log(user)
         if (!user) return;
 
         getCompetitiveProfile(user.uid).then(setProfile);
@@ -163,7 +162,6 @@ export function useMultiplayer() {
         }) => {
             setMySocketId(payload.mySocketId ?? null);
             setMyName(payload.myName || myName);
-            console.log("[SOCKET] opponent_info", payload);
             setOpponentName(payload.opponentName || "");
             setRoomId(payload.roomCode);
         });
@@ -265,7 +263,6 @@ export function useMultiplayer() {
             if (!payload) return;
 
             if (!payload.accepted) {
-                console.warn("[SOCKET] row_ack rejected", payload);
                 return;
             }
 
@@ -318,16 +315,6 @@ export function useMultiplayer() {
                     return next;
                 });
                 if (wasSolved) setScore((x) => x + 1);
-
-                console.log("[REVEAL]", {
-                    sol,
-                    rowIndex,
-                    wordFinished,
-                    wasSolved,
-                    idxRef: idxRef.current,
-                    wIdxFromSolution,
-                    deduped: processedRevealKeysRef.current.has(dedupeKey),
-                });
 
                 lastHandledKeyRef.current = null;
             }
