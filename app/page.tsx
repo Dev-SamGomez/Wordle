@@ -1,20 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Board } from "@/components/wordle/Board";
 import { Keyboard } from "@/components/wordle/Keyboard";
 import { Tutorial } from "@/components/wordle/Tutorial";
 import { Toast } from "@/components/wordle/Toast";
 import { useGame } from "@/hooks/use-game";
-import { Flame, Menu } from "lucide-react";
+import { Flame, LogOut, Menu, UserIcon } from "lucide-react";
 import SidebarMenu from "@/components/wordle/SideBarMenu";
 import MultiplayerHome from "@/components/multiplayer/multiplayer-home";
 import MainScreen from "@/components/main";
 import CompetitiveRecord from "@/components/wordle/HistoryCompetitive";
 import Leaderboard from "@/components/wordle/Leaderboard";
 import SettingsScreen from "@/components/wordle/ConfigScreen";
+import { signOutUser } from "@/lib/auth-client";
+import { useAuth } from "@/hooks/use-auth";
+import AuthDialogContent from "@/components/auth/AuthGate";
+import { formatCups } from "@/utils/competitive";
 
 export default function Home() {
+  const { user, authLoading } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const [pop, setPop] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [showHistoryCompetitive, setShowHistoryCompetitive] = useState(false);
@@ -26,7 +34,8 @@ export default function Home() {
 
   const game = useGame();
   const cups = game.getCompetitiveCups();
-
+  const [showAuth, setShowAuth] = useState(false);
+  const [lastCups, setLastCups] = useState(cups);
 
   const isMultiplayer = game.gameMode === "multiplayer";
   const isDaily = game.gameMode === "daily";
@@ -36,6 +45,29 @@ export default function Home() {
 
   const isHot = !isMultiplayer && streakValue > 0;
   const isAbsent = !isMultiplayer && streakValue === 0;
+
+  useEffect(() => {
+    if (cups > lastCups) {
+      setPop(false);
+      requestAnimationFrame(() => {
+        setPop(true);
+        const t = setTimeout(() => setPop(false), 220);
+        return () => clearTimeout(t);
+      });
+    }
+    setLastCups(cups);
+  }, [cups, lastCups]);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -167,6 +199,88 @@ export default function Home() {
         </>
       )}
 
+      <div className="absolute right-4 top-2 sm:top-3 flex items-center gap-2 z-40">
+        {!authLoading && (
+          user ? (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(v => !v)}
+                className="inline-flex items-center justify-center rounded-full border border-border hover:bg-muted transition-colors w-9 h-9"
+                aria-label="Cuenta"
+                title={user.displayName ?? user.email ?? "Cuenta"}
+              >
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt="Avatar"
+                    className="w-8 h-8 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <UserIcon className="w-5 h-5 text-muted-foreground" />
+                )}
+
+                <span
+                  className={[
+                    "absolute -bottom-1 -left-1",
+                    "min-w-[18px] h-[18px] px-1",
+                    "rounded-full border border-background",
+                    "bg-[hsl(var(--tile-correct))] text-background",
+                    "text-[10px] leading-[18px] font-extrabold",
+                    "flex items-center justify-center shadow-sm",
+                    "transition-transform duration-200 ease-out",
+                    , pop ? "scale-110 transition-transform" : "scale-100"
+                  ].join(" ")}
+                  title={`${cups} copas`}
+                >
+                  {formatCups(cups)}
+                </span>
+
+              </button>
+
+              {showUserMenu && (
+                <div
+                  className="absolute flex flex-col gap-2 right-0 mt-2 pb-2 w-56 rounded-md border border-border bg-background shadow-lg overflow-hidden"
+                  role="menu"
+                >
+                  <div className="px-3 py-2 text-xs text-muted-foreground border-b border-border">
+                    <p className="truncate text-foreground font-medium">
+                      {user.displayName ?? user.email?.split("@")[0] ?? "Jugador"}
+                    </p>
+                    {user.email && <p className="truncate">{user.email}</p>}
+                  </div>
+
+                  <button
+                    onClick={() => { setShowUserMenu(false); setShowConfig(true); }}
+                    className="max-w-full m-auto flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm bg-foreground text-background font-semibold hover:opacity-90 transition disabled:opacity-50"
+                    role="menuitem"
+                  >
+                    Configuración
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowUserMenu(false);
+                      await signOutUser();
+                    }}
+                    className="max-w-full m-auto flex items-center justify-center gap-2 rounded-xl bg-[#b91c1c] px-3 py-2 text-sm font-semibold text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAuth(true)}
+              className="px-3 py-1.5 rounded-md border border-border text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              Iniciar sesión
+            </button>
+          )
+        )}
+      </div>
+
       <SidebarMenu
         open={openSidebar}
         onOpenChange={setOpenSidebar}
@@ -241,6 +355,7 @@ export default function Home() {
       {showHistoryCompetitive && <CompetitiveRecord onClose={handleCloseHistoryCompetitive} />}
       {showLeaderBoard && <Leaderboard onClose={handleCloseLeaderBoard} />}
       {showConfig && <SettingsScreen onClose={handleCloseConfig} />}
+      {showAuth && <AuthDialogContent onClose={() => setShowAuth(false)} />}
     </main>
   );
 }
