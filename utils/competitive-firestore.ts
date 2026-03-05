@@ -51,6 +51,26 @@ export async function saveCompetitiveProfileToFirestore(uid: string, p: Competit
     );
 }
 
+function computeTrendFromHistory(
+    history: { delta: number; ts: number; result: "win" | "lose" | "draw" }[],
+    windowSize = 5
+) {
+    const sorted = [...(history ?? [])].sort((a, b) => b.ts - a.ts);
+    const recent = sorted.slice(0, windowSize);
+    const recentDelta = recent.reduce((acc, h) => acc + (typeof h.delta === "number" ? h.delta : 0), 0);
+
+    let trend: "up" | "down" | "flat" = "flat";
+    if (recentDelta > 0) trend = "up";
+    else if (recentDelta < 0) trend = "down";
+
+    const lastResult = recent[0]?.result ?? null;
+    const lastTs = recent[0]?.ts ?? null;
+
+    const form = recent.map(h => (h.result === "win" ? "W" : h.result === "lose" ? "L" : "D")).join("");
+
+    return { trend, recentDelta, lastResult, lastTs, form };
+}
+
 export async function updateLeaderboardFromProfile(uid: string, profile: CompetitiveProfile) {
     const deps = getFirebase();
     if (!deps) return;
@@ -58,6 +78,8 @@ export async function updateLeaderboardFromProfile(uid: string, profile: Competi
 
     const nickname =
         auth.currentUser?.displayName ?? auth.currentUser?.email?.split("@")[0] ?? "Jugador";
+
+    const { trend, recentDelta, lastResult, lastTs, form } = computeTrendFromHistory(profile.history ?? [], 5);
 
     await setDoc(
         doc(db, "leaderboard", uid),
@@ -70,6 +92,11 @@ export async function updateLeaderboardFromProfile(uid: string, profile: Competi
             gamesPlayed: profile.gamesPlayed,
             updatedAt: serverTimestamp(),
             photoURL: auth.currentUser?.photoURL ?? null,
+            trend,
+            recentDelta,
+            lastResult,
+            lastTs,
+            form,
         },
         { merge: true }
     );
