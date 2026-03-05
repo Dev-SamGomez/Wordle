@@ -5,6 +5,9 @@ import { WORDS } from "@/data/words";
 import { evaluateGuess, type LetterState } from "@/utils/evaluateWord";
 import { getCurrentUser } from "@/lib/auth-client";
 import { getCompetitiveProfile } from "@/utils/competitive-firestore";
+import { useAuth } from "./use-auth";
+import { getFirebase } from "@/lib/firebase-client";
+import { doc, onSnapshot } from "firebase/firestore";
 
 export type { LetterState };
 export type Evaluation = LetterState;
@@ -173,19 +176,27 @@ export function useGame() {
     };
   });
 
-
+  const { user, authLoading } = useAuth();
   useEffect(() => {
-    const u = getCurrentUser();
-    if (!u) {
-      setCompetitiveCups(0);
-      return;
-    }
-    let alive = true;
-    getCompetitiveProfile(u.uid)
-      .then(p => { if (alive) setCompetitiveCups(p.cups ?? 0); })
-      .catch(() => { if (alive) setCompetitiveCups(0); });
-    return () => { alive = false; };
-  }, []);
+    if (authLoading) return;
+    if (!user) { setCompetitiveCups(0); return; }
+
+    const deps = getFirebase();
+    if (!deps) return;
+    const { db } = deps;
+
+    const ref = doc(db, "profiles", user.uid);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        const d: any = snap.data();
+        setCompetitiveCups(typeof d?.cups === "number" ? d.cups : 0);
+      },
+      () => setCompetitiveCups(0)
+    );
+
+    return () => unsub();
+  }, [user, authLoading]);
 
 
   useEffect(() => {
@@ -470,7 +481,7 @@ export function useGame() {
 
   const getCompetitiveCups = useCallback((): number => {
     return competitiveCups;
-  }, []);
+  }, [competitiveCups]);
 
   const multiplayerMode = useCallback(() => {
     const currentStreaks = loadStreaks();

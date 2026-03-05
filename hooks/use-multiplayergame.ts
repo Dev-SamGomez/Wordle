@@ -425,6 +425,7 @@ export function useMultiplayer() {
         toastMessage: game.toastMessage,
         handleKeyPress: game.handleKeyPress,
         handleRevealComplete: game.finishReveal,
+        getCompetitiveCups: game.getCompetitiveCups,
         createRoom,
         joinRoom,
         leaveRoom,
