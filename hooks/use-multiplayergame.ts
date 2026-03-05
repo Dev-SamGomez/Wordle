@@ -329,18 +329,6 @@ export function useMultiplayer() {
                     deduped: processedRevealKeysRef.current.has(dedupeKey),
                 });
 
-                // if (wIdxFromSolution === idxRef.current) {
-                //     const next = wIdxFromSolution + 1;
-
-                //     idxRef.current = next;
-
-                //     if (next < wordsRef.current.length) {
-                //         game.startMultiplayerRound(wordsRef.current[next]);
-
-                //         processedRevealKeysRef.current.clear();
-                //     }
-                // }
-
                 lastHandledKeyRef.current = null;
             }
         );
