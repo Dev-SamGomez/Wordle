@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trophy, X, Crown, Loader2 } from "lucide-react";
+import { Trophy, X, Crown, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { getRank } from "@/utils/getRank";
 
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, limit, onSnapshot, where } from "firebase/firestore";
 import { getFirebase } from "@/lib/firebase-client";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,9 @@ export interface LeaderboardPlayer {
     name: string;
     cups: number;
     photoURL?: string | null;
+    delta: number;
+    posDelta: number;
+    trend: Trend;
 }
 
 interface LeaderboardProps {
@@ -23,6 +26,13 @@ interface LeaderboardProps {
     top?: number;
     requireAuth?: boolean;
 }
+
+type Trend = "up" | "down" | "flat";
+// type Row = LeaderboardPlayer & {
+//     delta: number;
+//     posDelta: number;
+//     trend: Trend;
+// };
 
 export default function Leaderboard({
     onClose,
@@ -33,8 +43,9 @@ export default function Leaderboard({
     const { user, authLoading } = useAuth();
     const [showAuth, setShowAuth] = useState(false);
 
-    const [data, setData] = useState<LeaderboardPlayer[]>([]);
     const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState<LeaderboardPlayer[]>([]);
+    // const prevMapRef = useRef<Map<string, { cups: number; pos: number }>>(new Map());
 
     useEffect(() => {
         if (!requireAuth) return;
@@ -46,13 +57,13 @@ export default function Leaderboard({
         if (!deps) return;
 
         if (requireAuth && !user) {
-            setData([]);
+            setRows([]);
             setLoading(false);
             return;
         }
 
         const { db } = deps;
-        const q = query(
+        const qy = query(
             collection(db, "leaderboard"),
             orderBy("cups", "desc"),
             limit(top)
@@ -60,29 +71,34 @@ export default function Leaderboard({
 
         setLoading(true);
         const unsub = onSnapshot(
-            q,
+            qy,
             (snap) => {
-                const arr: LeaderboardPlayer[] = snap.docs.map((doc) => {
+                const base = snap.docs.map((doc) => {
                     const d: any = doc.data();
                     return {
                         id: doc.id,
                         name: d.nickname ?? d.name ?? "Jugador",
                         cups: typeof d.cups === "number" ? d.cups : 0,
                         photoURL: d.photoURL ?? null,
-                    };
+                        trend: (d.trend as "up" | "down" | "flat") ?? "flat",
+                        delta: typeof d.recentDelta === "number" ? d.recentDelta : 0,
+                        posDelta: 0,
+                    } as LeaderboardPlayer;
                 });
-                setData(arr);
+
+                const list = (players ?? base).slice().sort((a, b) => b.cups - a.cups);
+                setRows(list);
                 setLoading(false);
             },
             (err) => {
                 console.error("[LEADERBOARD] Firestore error:", err);
-                setData([]);
+                setRows([]);
                 setLoading(false);
             }
         );
 
         return () => unsub();
-    }, [user, top, requireAuth]);
+    }, [user, top, requireAuth, players]);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isAutoScrolling, setIsAutoScrolling] = useState(true);
@@ -111,7 +127,7 @@ export default function Leaderboard({
             clearTimeout(timeout);
             cancelAnimationFrame(animationId);
         };
-    }, [isAutoScrolling, data.length]);
+    }, [isAutoScrolling, rows.length]);
 
     const handleUserScroll = () => {
         setIsAutoScrolling(false);
@@ -134,7 +150,7 @@ export default function Leaderboard({
         );
     }
 
-    const list = (players ?? data).slice().sort((a, b) => b.cups - a.cups);
+    const list = rows;
 
     return (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -161,9 +177,18 @@ export default function Leaderboard({
                                     className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background"
                                     style={{ borderColor: getRank(list[1].cups).color }}
                                 >
-                                    <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
-                                        {list[1].name.charAt(0).toUpperCase()}
-                                    </span>
+                                    {list[1].photoURL ? (
+                                        <img
+                                            src={list[1].photoURL}
+                                            alt="Avatar"
+                                            className="w-8 h-8 rounded-full object-cover text-sm font-bold"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    ) : (
+                                        <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                            {list[1].name.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
                                 <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">
                                     {list[1].name}
@@ -187,9 +212,18 @@ export default function Leaderboard({
                                     className="w-14 h-14 rounded-full border-2 flex items-center justify-center bg-background"
                                     style={{ borderColor: getRank(list[0].cups).color }}
                                 >
-                                    <span className="text-base font-bold" style={{ color: getRank(list[0].cups).color }}>
-                                        {list[0].name.charAt(0).toUpperCase()}
-                                    </span>
+                                    {list[0].photoURL ? (
+                                        <img
+                                            src={list[0].photoURL}
+                                            alt="Avatar"
+                                            className="w-8 h-8 rounded-full object-cover text-sm font-bold"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    ) : (
+                                        <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                            {list[0].name.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
                                 <span className="text-xs text-muted-foreground font-semibold truncate max-w-[72px]">
                                     {list[0].name}
@@ -212,9 +246,18 @@ export default function Leaderboard({
                                     className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background"
                                     style={{ borderColor: getRank(list[2].cups).color }}
                                 >
-                                    <span className="text-sm font-bold" style={{ color: getRank(list[2].cups).color }}>
-                                        {list[2].name.charAt(0).toUpperCase()}
-                                    </span>
+                                    {list[2].photoURL ? (
+                                        <img
+                                            src={list[2].photoURL}
+                                            alt="Avatar"
+                                            className="w-8 h-8 rounded-full object-cover text-sm font-bold"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    ) : (
+                                        <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                            {list[2].name.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
                                 <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">
                                     {list[2].name}
@@ -260,6 +303,10 @@ export default function Leaderboard({
                                 const position = idx + 1;
                                 const isTop3 = position <= 3;
                                 const posColors = ["text-[#fbbf24]", "text-[#9ca3af]", "text-[#cd7f32]"];
+                                const TrendIcon =
+                                    player.trend === "up" ? TrendingUp :
+                                        player.trend === "down" ? TrendingDown :
+                                            Minus;
 
                                 return (
                                     <div
@@ -281,9 +328,18 @@ export default function Leaderboard({
                                             style={{ borderColor: rank.color + "88" }}
                                             title={player.name}
                                         >
-                                            <span className="text-xs font-bold" style={{ color: rank.color }}>
-                                                {player.name.charAt(0).toUpperCase()}
-                                            </span>
+                                            {player.photoURL ? (
+                                                <img
+                                                    src={player.photoURL}
+                                                    alt="Avatar"
+                                                    className="w-8 h-8 rounded-full object-cover text-sm font-bold"
+                                                    referrerPolicy="no-referrer"
+                                                />
+                                            ) : (
+                                                <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                                    {player.name.charAt(0).toUpperCase()}
+                                                </span>
+                                            )}
                                         </div>
 
                                         <div className="flex-1 min-w-0">
@@ -294,10 +350,42 @@ export default function Leaderboard({
                                         </div>
 
                                         <div className="flex items-center gap-1 shrink-0">
+                                            <span
+                                                title={
+                                                    player.trend === "up"
+                                                        ? `En ascenso (${player.delta > 0 ? "+" : ""}${player.delta})`
+                                                        : player.trend === "down"
+                                                            ? `En descenso (${player.delta})`
+                                                            : "Sin cambios"
+                                                }
+                                            >
+                                                <TrendIcon
+                                                    className={`w-3.5 h-3.5 ${player.trend === "up"
+                                                        ? "text-emerald-500"
+                                                        : player.trend === "down"
+                                                            ? "text-red-500"
+                                                            : "text-muted-foreground"
+                                                        }`}
+                                                    aria-hidden="true"
+                                                    focusable="false"
+                                                />
+                                            </span>
+
                                             <Trophy className="w-3.5 h-3.5" style={{ color: rank.color }} />
                                             <span className="text-sm font-bold tabular-nums" style={{ color: rank.color }}>
                                                 {player.cups}
                                             </span>
+
+                                            {player.delta !== 0 && (
+                                                <span
+                                                    className={`text-[10px] font-bold ${player.delta > 0 ? "text-emerald-500" : "text-red-500"
+                                                        }`}
+                                                    title={`Cambio de copas: ${player.delta > 0 ? "+" : ""}${player.delta}`}
+                                                >
+                                                    {player.delta > 0 ? "+" : ""}
+                                                    {player.delta}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 );
