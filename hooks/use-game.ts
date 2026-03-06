@@ -3,6 +3,11 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { WORDS } from "@/data/words";
 import { evaluateGuess, type LetterState } from "@/utils/evaluateWord";
+import { getCurrentUser } from "@/lib/auth-client";
+import { getCompetitiveProfile } from "@/utils/competitive-firestore";
+import { useAuth } from "./use-auth";
+import { getFirebase } from "@/lib/firebase-client";
+import { doc, onSnapshot } from "firebase/firestore";
 
 export type { LetterState };
 export type Evaluation = LetterState;
@@ -79,17 +84,25 @@ const loadStreaks = (): Streaks => {
 
 const COMP_STORAGE_KEY = "wordle-competitive-profile-v1";
 
-function loadCompetitiveCups(): number {
-  if (typeof window === "undefined") return 0;
-  try {
-    const raw = localStorage.getItem(COMP_STORAGE_KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    const cups = Number(parsed?.cups ?? 0);
-    return Number.isFinite(cups) && cups > 0 ? cups : 0;
-  } catch {
-    return 0;
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+
+  if (target.isContentEditable) return true;
+
+  const editable = target.closest("input, textarea, [contenteditable=''], [contenteditable='true']");
+  if (editable) {
+    if (editable instanceof HTMLInputElement || editable instanceof HTMLTextAreaElement) {
+      if (editable.disabled || editable.readOnly) return false;
+    }
+    return true;
   }
+
+  const role = target.getAttribute("role");
+  if (role === "textbox" || role === "searchbox" || role === "combobox") return true;
+
+  if (target.closest("[data-ignore-global-keys='true']")) return true;
+
+  return false;
 }
 
 const saveStreaks = (streaks: Streaks) => {
@@ -162,6 +175,7 @@ export function useGame() {
   const usedWordsRef = useRef<Set<string>>(new Set());
   const streakCountedRef = useRef(false);
   const lastEmittedRevealRef = useRef<string | null>(null);
+  const [competitiveCups, setCompetitiveCups] = useState<number>(0);
 
   const [state, setState] = useState<GameState>(() => {
     const word = getRandomWord(usedWordsRef.current);
@@ -180,6 +194,35 @@ export function useGame() {
       streaks: { ...DEFAULT_STREAKS },
     };
   });
+
+  const { user, authLoading } = useAuth();
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setCompetitiveCups(0); return; }
+
+    const deps = getFirebase();
+    if (!deps) return;
+    const { db } = deps;
+
+    const ref = doc(db, "profiles", user.uid);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        const d: any = snap.data();
+        setCompetitiveCups(typeof d?.cups === "number" ? d.cups : 0);
+      },
+      () => setCompetitiveCups(0)
+    );
+
+    return () => unsub();
+  }, [user, authLoading]);
+
+
+  useEffect(() => {
+    const saved = loadStreaks();
+    setState((prev) => ({ ...prev, streaks: saved }));
+  }, []);
+
 
   useEffect(() => {
     const saved = loadStreaks();
@@ -456,8 +499,8 @@ export function useGame() {
   }, []);
 
   const getCompetitiveCups = useCallback((): number => {
-    return loadCompetitiveCups();
-  }, []);
+    return competitiveCups;
+  }, [competitiveCups]);
 
   const multiplayerMode = useCallback(() => {
     const currentStreaks = loadStreaks();
@@ -506,6 +549,7 @@ export function useGame() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (e.key === "Enter") {

@@ -145,3 +145,45 @@ body {
     transform: rotateX(180deg);
   }
 }
+
+@keyframes flame {
+  0% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 4px rgba(255, 80, 80, 0.6));
+  }
+
+  50% {
+    transform: translateY(-1px) scale(1.05);
+    filter: drop-shadow(0 0 8px rgba(255, 120, 80, 0.8));
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 4px rgba(255, 80, 80, 0.6));
+  }
+}
+
+@keyframes ember {
+  0% {
+    opacity: .7;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: .45;
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: .7;
+    transform: scale(1);
+  }
+}
+
+.animate-flame {
+  animation: flame 1.2s ease-in-out infinite;
+}
+
+.animate-ember {
+  animation: ember 1.6s ease-in-out infinite;
+}

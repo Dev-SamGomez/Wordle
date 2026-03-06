@@ -1,61 +1,6 @@
 import { CompetitiveProfile, CompetitiveResult } from "@/data/competitive-res";
 
-const STORAGE_KEY = "wordle-competitive-profile-v1";
-const DEFAULT_STARTING_CUPS = 0;
 const FLOOR_CUPS = 0;
-
-export function loadCompetitiveProfile(): CompetitiveProfile {
-    if (typeof window === "undefined") {
-        return {
-            cups: DEFAULT_STARTING_CUPS,
-            wins: 0,
-            losses: 0,
-            draws: 0,
-            gamesPlayed: 0,
-            lastUpdated: new Date().toISOString(),
-            history: [],
-        };
-    }
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-            return {
-                cups: DEFAULT_STARTING_CUPS,
-                wins: 0,
-                losses: 0,
-                draws: 0,
-                gamesPlayed: 0,
-                lastUpdated: new Date().toISOString(),
-                history: [],
-            };
-        }
-        const parsed = JSON.parse(raw) as Partial<CompetitiveProfile>;
-        return {
-            cups: typeof parsed.cups === "number" ? parsed.cups : DEFAULT_STARTING_CUPS,
-            wins: parsed.wins ?? 0,
-            losses: parsed.losses ?? 0,
-            draws: parsed.draws ?? 0,
-            gamesPlayed: parsed.gamesPlayed ?? 0,
-            lastUpdated: parsed.lastUpdated ?? new Date().toISOString(),
-            history: Array.isArray(parsed.history) ? parsed.history : [],
-        };
-    } catch {
-        return {
-            cups: DEFAULT_STARTING_CUPS,
-            wins: 0,
-            losses: 0,
-            draws: 0,
-            gamesPlayed: 0,
-            lastUpdated: new Date().toISOString(),
-            history: [],
-        };
-    }
-}
-
-export function saveCompetitiveProfile(p: CompetitiveProfile) {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-}
 
 export function resultToDelta(result: CompetitiveResult): number {
     switch (result) {
@@ -97,10 +42,9 @@ export function applyCompetitiveResult(
     return updated;
 }
 
-export function formatCups (n: number) {
-    if (n >= 1000) {
-        const v = n / 1000;
-        return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}k`;
-    }
-    return String(n);
+export function formatCups(n: number) {
+    if (n < 1000) return String(n);
+    if (n < 10000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    if (n < 1000000) return Math.round(n / 1000) + "k";
+    return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
 }
