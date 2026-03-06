@@ -9,6 +9,7 @@ interface FinishedScreenProps {
     roundResultsRival: ("win" | "loss" | null)[];
     onRematch: () => void;
     onLeave: () => void;
+    nameOpponent: string
 }
 
 const FinishedScreen = ({
@@ -19,6 +20,7 @@ const FinishedScreen = ({
     roundResultsRival,
     onRematch,
     onLeave,
+    nameOpponent
 }: FinishedScreenProps) => {
     let result: "win" | "lose" | "draw";
     
@@ -94,7 +96,7 @@ const FinishedScreen = ({
                                     <span className="text-[10px] font-bold text-foreground">VS</span>
                                 </div>
                                 <div className="flex flex-1 flex-col items-center gap-2 rounded-lg bg-muted py-2.5">
-                                    <span className="text-[11px] font-semibold text-muted-foreground">Rival</span>
+                                    <span className="text-[11px] font-semibold text-muted-foreground">nameOpponent</span>
                                     <RoundDots
                                         results={roundResultsRival}
                                         totalRounds={3}

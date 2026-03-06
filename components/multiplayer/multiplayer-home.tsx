@@ -87,6 +87,7 @@ export default function MultiplayerHome() {
             onLeave={game.leaveRoom}
             roundResultsPlayer={game.roundResultsPlayer}
             roundResultsRival={game.roundResultsRival}
+            nameOpponent={game.opponentName}
         />;
     }
 
