@@ -12,7 +12,7 @@ import AuthRequiredModal from "../auth/AuthGate";
 
 export interface LeaderboardPlayer {
     id: string;
-    name: string;
+    nickname: string;
     cups: number;
     photoURL?: string | null;
     delta: number;
@@ -77,7 +77,7 @@ export default function Leaderboard({
                     const d: any = doc.data();
                     return {
                         id: doc.id,
-                        name: d.nickname ?? d.name ?? "Jugador",
+                        nickname: d.nickname ?? d.name ?? "Jugador",
                         cups: typeof d.cups === "number" ? d.cups : 0,
                         photoURL: d.photoURL ?? null,
                         trend: (d.trend as "up" | "down" | "flat") ?? "flat",
@@ -186,12 +186,12 @@ export default function Leaderboard({
                                         />
                                     ) : (
                                         <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
-                                            {list[1].name.charAt(0).toUpperCase()}
+                                            {list[1].nickname.charAt(0).toUpperCase()}
                                         </span>
                                     )}
                                 </div>
                                 <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">
-                                    {list[1].name}
+                                    {list[1].nickname}
                                 </span>
                                 <div className="flex items-center gap-0.5">
                                     <Trophy className="w-3 h-3" style={{ color: getRank(list[1].cups).color }} />
@@ -221,12 +221,12 @@ export default function Leaderboard({
                                         />
                                     ) : (
                                         <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
-                                            {list[0].name.charAt(0).toUpperCase()}
+                                            {list[0].nickname.charAt(0).toUpperCase()}
                                         </span>
                                     )}
                                 </div>
                                 <span className="text-xs text-muted-foreground font-semibold truncate max-w-[72px]">
-                                    {list[0].name}
+                                    {list[0].nickname}
                                 </span>
                                 <div className="flex items-center gap-0.5">
                                     <Trophy className="w-3 h-3" style={{ color: getRank(list[0].cups).color }} />
@@ -255,12 +255,12 @@ export default function Leaderboard({
                                         />
                                     ) : (
                                         <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
-                                            {list[2].name.charAt(0).toUpperCase()}
+                                            {list[2].nickname.charAt(0).toUpperCase()}
                                         </span>
                                     )}
                                 </div>
                                 <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">
-                                    {list[2].name}
+                                    {list[2].nickname}
                                 </span>
                                 <div className="flex items-center gap-0.5">
                                     <Trophy className="w-3 h-3" style={{ color: getRank(list[2].cups).color }} />
@@ -326,7 +326,7 @@ export default function Leaderboard({
                                         <div
                                             className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 bg-background"
                                             style={{ borderColor: rank.color + "88" }}
-                                            title={player.name}
+                                            title={player.nickname}
                                         >
                                             {player.photoURL ? (
                                                 <img
@@ -337,13 +337,13 @@ export default function Leaderboard({
                                                 />
                                             ) : (
                                                 <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
-                                                    {player.name.charAt(0).toUpperCase()}
+                                                    {player.nickname.charAt(0).toUpperCase()}
                                                 </span>
                                             )}
                                         </div>
 
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-muted-foreground truncate">{player.name}</p>
+                                            <p className="text-sm font-semibold text-muted-foreground truncate">{player.nickname}</p>
                                             <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: rank.color }}>
                                                 {rank.label}
                                             </p>
