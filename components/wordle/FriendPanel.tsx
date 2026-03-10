@@ -19,7 +19,7 @@ import {
     onOutgoingFriendRequestsSnapshot,
 } from "@/utils/social";
 import { acceptChallengeAndJoin, onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot, rejectChallenge, sendChallengeWithRoom } from "@/utils/challenges";
-import { getMultiplayerInstance } from "@/lib/multiplayer-context";
+import { getMultiplayerInstance } from "@/lib/multiplayer-instance";
 
 type Props = {
     onClose: () => void;
