@@ -1,3 +1,8 @@
+/* TODO:
+
+Queda pendiente el aceptar partida, ver modo de cambiar sin montar otro hook
+
+*/
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -38,11 +43,11 @@ function chunk<T>(arr: T[], size = 10): T[][] {
     return out;
 }
 
-function normalizeUidList(uids: string[]): string[] {
+const normalizeUidList = (uids: string[]): string[] => {
     return Array.from(new Set(uids)).sort();
 }
 
-function sameSet(a: string[], b: string[]) {
+const sameSet = (a: string[], b: string[]) => {
     if (a === b) return true;
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
@@ -268,7 +273,7 @@ export default function FriendsPanel({ onClose, onViewHistory, onStartMultiplaye
         }
     };
 
-    function canSendTo(uid: string) {
+    const canSendTo = (uid: string) => {
         if (friendSet.has(uid)) return false;
         if (outgoingToSet.has(uid)) return false;
         if (incomingFromSet.has(uid)) return false;
@@ -334,7 +339,7 @@ export default function FriendsPanel({ onClose, onViewHistory, onStartMultiplaye
         [incomingChallenges]
     );
 
-    async function handleChallenge(uid: string) {
+    const handleChallenge = async (uid: string) => {
         try {
             const code = await sendChallengeWithRoom(uid, mp.createRoomAndWaitCode);
             pushToast({ kind: "success", msg: `Desafío enviado (sala ${code})` });
@@ -344,7 +349,7 @@ export default function FriendsPanel({ onClose, onViewHistory, onStartMultiplaye
         }
     }
 
-    async function handleAcceptChallenge(chId: string) {
+    const handleAcceptChallenge = async (chId: string) => {
         try {
             await acceptChallengeAndJoin(chId, mp.joinRoom);
             pushToast({ kind: "success", msg: "Te uniste a la sala" });
@@ -355,15 +360,13 @@ export default function FriendsPanel({ onClose, onViewHistory, onStartMultiplaye
         }
     }
 
-    async function handleRejectChallenge(chId: string) {
+    const handleRejectChallenge = async (chId: string) => {
         try {
             await rejectChallenge(chId);
         } catch (e: any) {
             pushToast({ kind: "error", msg: e?.message ?? "Error al rechazar" });
         }
     }
-
-    console.log(mp.gameStatus)
 
     return (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
