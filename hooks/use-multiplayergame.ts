@@ -53,6 +53,9 @@ export function useMultiplayer() {
     const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
     const finishAppliedRef = useRef(false);
 
+    const pendingRoomResolveRef = useRef<((code: string) => void) | null>(null);
+    const pendingRoomRejectRef = useRef<((err: any) => void) | null>(null);
+
     const getDefaultName = () => {
         const u = getCurrentUser();
         return u?.displayName ?? u?.email?.split("@")[0] ?? "Jugador";
@@ -85,10 +88,22 @@ export function useMultiplayer() {
             setRivalScore(0);
             setRivalBoard([]);
             setRivalWordIndex(0);
+            if (pendingRoomResolveRef.current) {
+                try { pendingRoomResolveRef.current(code); } finally {
+                    pendingRoomResolveRef.current = null;
+                    pendingRoomRejectRef.current = null;
+                }
+            }
         });
 
         s.on("join_error", () => {
             setStatus("waiting");
+            if (pendingRoomRejectRef.current) {
+                try { pendingRoomRejectRef.current(new Error("Error al crear o unir a la sala")); } finally {
+                    pendingRoomResolveRef.current = null;
+                    pendingRoomRejectRef.current = null;
+                }
+            }
         });
 
         s.on("room_ready", () => {
@@ -326,6 +341,40 @@ export function useMultiplayer() {
         };
     }, [game]);
 
+    const createRoomAndWaitCode = (name?: string, timeoutMs = 8000) => {
+        return new Promise<string>((resolve, reject) => {
+            const finalName = (name && name.trim()) || getDefaultName();
+            if (pendingRoomResolveRef.current || pendingRoomRejectRef.current) {
+                pendingRoomRejectRef.current?.(new Error("Operación previa en curso"));
+                pendingRoomResolveRef.current = null;
+                pendingRoomRejectRef.current = null;
+            }
+            pendingRoomResolveRef.current = resolve;
+            pendingRoomRejectRef.current = reject;
+
+            socketRef.current?.emit("create_room", { name: finalName });
+
+            const t = setTimeout(() => {
+                if (pendingRoomRejectRef.current === reject) {
+                    try { reject(new Error("Timeout creando sala")); } finally {
+                        pendingRoomResolveRef.current = null;
+                        pendingRoomRejectRef.current = null;
+                    }
+                }
+            }, timeoutMs);
+
+            const originalResolve = resolve;
+            const originalReject = reject;
+            pendingRoomResolveRef.current = (code: string) => {
+                clearTimeout(t);
+                originalResolve(code);
+            };
+            pendingRoomRejectRef.current = (err: any) => {
+                clearTimeout(t);
+                originalReject(err);
+            };
+        });
+    };
 
     const createRoom = (name?: string) => {
         const u = getCurrentUser();
@@ -403,6 +452,7 @@ export function useMultiplayer() {
         getCompetitiveCups: game.getCompetitiveCups,
         createRoom,
         joinRoom,
+        createRoomAndWaitCode,
         leaveRoom,
         requestRematch,
         findMatch,
