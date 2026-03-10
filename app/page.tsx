@@ -17,6 +17,7 @@ import { signOutUser } from "@/lib/auth-client";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/utils/competitive";
+import FriendsPanel from "@/components/wordle/FriendPanel";
 
 export default function Home() {
   const { user, authLoading } = useAuth();
@@ -31,6 +32,7 @@ export default function Home() {
   const [showConfig, setShowConfig] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
   const [openSidebar, setOpenSidebar] = useState(false);
+  const [openFriendsPanel, setOpenFriendsPanel] = useState(false);
 
   const game = useGame();
   const cups = game.getCompetitiveCups();
@@ -122,6 +124,10 @@ export default function Home() {
 
   const handleConfig = () => {
     setShowConfig(true)
+  }
+
+  const handleFriendsPanel = () => {
+    setOpenFriendsPanel(true)
   }
 
   if (!mounted) {
@@ -292,6 +298,7 @@ export default function Home() {
         onCompetitiveRecord={handleHistoryCompetitive}
         onLeaderBoard={handleLeaderBoard}
         onConfig={handleConfig}
+        onFriendsPanel={handleFriendsPanel}
         cups={cups}
         streakDaily={game.streaks?.dailyStreak ?? 0}
         streakSolitarie={game.streaks?.solitaireStreak ?? 0}
@@ -356,6 +363,13 @@ export default function Home() {
       {showLeaderBoard && <Leaderboard onClose={handleCloseLeaderBoard} />}
       {showConfig && <SettingsScreen onClose={handleCloseConfig} />}
       {showAuth && <AuthDialogContent onClose={() => setShowAuth(false)} />}
+      {openFriendsPanel && <FriendsPanel
+        onClose={() => setOpenFriendsPanel(false)}
+        onStartMultiplayer={() => {
+          setShowMainScreen(false);
+          setShowMultiplayer(true);
+        }}
+      />}
     </main>
   );
 }

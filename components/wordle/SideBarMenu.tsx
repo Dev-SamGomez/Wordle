@@ -21,6 +21,7 @@ interface SidebarMenuProps {
     onCompetitiveRecord: () => void;
     onLeaderBoard: () => void;
     onConfig: () => void;
+    onFriendsPanel: () => void;
     cups: number;
     streakDaily: number;
     streakSolitarie: number;
@@ -37,6 +38,7 @@ export default function SidebarMenu({
     onCompetitiveRecord,
     onLeaderBoard,
     onConfig,
+    onFriendsPanel,
     cups,
     streakDaily,
     streakSolitarie
@@ -74,6 +76,10 @@ export default function SidebarMenu({
                 break;
             case "config":
                 onConfig();
+                onOpenChange(false);
+                break;
+            case "friends":
+                onFriendsPanel();
                 onOpenChange(false);
                 break;
         }
