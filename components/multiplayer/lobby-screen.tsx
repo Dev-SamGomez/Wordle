@@ -2,16 +2,12 @@ import { useMultiplayer } from "@/hooks/use-multiplayergame";
 import { LogIn, Plus, Trophy, Users, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SiChessdotcom } from "react-icons/si";
+import FriendsPanel from "../wordle/FriendPanel";
 
 export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useMultiplayer>; namePlayer: string }) => {
     const [name, setName] = useState(namePlayer);
     const [roomInput, setRoomInput] = useState("");
-    const [activeTab, setActiveTab] = useState<"matchmaking" | "manual">("matchmaking");
-
-    const canFindMatch = useMemo(
-        () => !!name.trim() && game.gameStatus !== "queueing" && game.gameStatus !== "countdown" && game.gameStatus !== "playing",
-        [name, game.gameStatus]
-    );
+    const [activeTab, setActiveTab] = useState<"matchmaking" | "manual" | "friends">("matchmaking");
 
     const canCancelFind = useMemo(
         () => game.gameStatus === "queueing",
@@ -61,10 +57,10 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                         {typeof game.competitive.lastMatchDelta === "number" && (
                             <span
                                 className={`text-xs font-semibold ${game.competitive.lastMatchDelta > 0
-                                        ? "text-[#538d4e]"
-                                        : game.competitive.lastMatchDelta < 0
-                                            ? "text-[#b91c1c]"
-                                            : "text-muted-foreground"
+                                    ? "text-[#538d4e]"
+                                    : game.competitive.lastMatchDelta < 0
+                                        ? "text-[#b91c1c]"
+                                        : "text-muted-foreground"
                                     }`}
                             >
                                 {game.competitive.lastMatchDelta > 0
@@ -77,31 +73,41 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                 </div>
 
                 <div className="rounded-2xl border border-border bg-muted p-6 shadow-xl shadow-black/30">
-                    
+
                     <div className="mb-5 flex gap-1 rounded-xl bg-background p-1">
                         <button
                             onClick={() => setActiveTab("matchmaking")}
                             className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${activeTab === "matchmaking"
-                                    ? "bg-[#538d4e] text-white shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground"
+                                ? "bg-[#538d4e] text-white shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                                 }`}
                         >
                             <Search className="h-4 w-4" />
-                            Buscar partida
+                            Online
                         </button>
                         <button
                             onClick={() => setActiveTab("manual")}
                             className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${activeTab === "manual"
-                                    ? "bg-[#538d4e] text-white shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground"
+                                ? "bg-[#538d4e] text-white shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                                 }`}
                         >
                             <Plus className="h-4 w-4" />
                             Crear/Unirse
                         </button>
+                        <button
+                            onClick={() => setActiveTab("friends")}
+                            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${activeTab === "friends"
+                                ? "bg-[#538d4e] text-white shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                                }`}
+                        >
+                            <Users className="h-4 w-4" />
+                            Amigos
+                        </button>
                     </div>
 
-                    {activeTab === "matchmaking" ? (
+                    {activeTab === "matchmaking" && (
                         <div className="space-y-4">
                             <p className="text-sm text-muted-foreground">
                                 Te emparejaremos automáticamente con el siguiente jugador disponible.
@@ -124,7 +130,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                                     className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#538d4e] px-4 py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                                 >
                                     <Search className="h-4 w-4" />
-                                    Competir
+                                    Buscar partida
                                 </button>
 
                                 <button
@@ -137,7 +143,8 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                                 </button>
                             </div>
                         </div>
-                    ) : (
+                    )}
+                    {activeTab == "manual" && (
                         <div className="space-y-6">
                             <div className="space-y-3">
                                 <p className="text-sm text-muted-foreground">
@@ -167,7 +174,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                                         placeholder="Pega el código aquí..."
                                         value={roomInput}
                                         onChange={(e) => setRoomInput(e.target.value.toUpperCase())}
-                                        className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-[#538d4e] focus:ring-2 focus:ring-[#538d4e]/20"
+                                        className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-[#538d4e] focus:ring-2 focus:ring-[#538d4e]/20"
                                     />
                                 </div>
                                 <button
@@ -180,6 +187,9 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                                 </button>
                             </div>
                         </div>
+                    )}
+                    {activeTab === "friends" && (
+                        <FriendsPanel game={game} />
                     )}
                 </div>
 
