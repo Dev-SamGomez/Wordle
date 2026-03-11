@@ -17,7 +17,6 @@ import { signOutUser } from "@/lib/auth-client";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/utils/competitive";
-import FriendsPanel from "@/components/wordle/FriendPanel";
 
 export default function Home() {
   const { user, authLoading } = useAuth();
@@ -32,7 +31,6 @@ export default function Home() {
   const [showConfig, setShowConfig] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
   const [openSidebar, setOpenSidebar] = useState(false);
-  const [openFriendsPanel, setOpenFriendsPanel] = useState(false);
 
   const game = useGame();
   const cups = game.getCompetitiveCups();
@@ -108,6 +106,11 @@ export default function Home() {
     if (showMultiplayer) setShowMultiplayer(prev => !prev)
   }
 
+  const handleMainScreen = () => {
+    setShowMainScreen(prev => !prev)
+    setShowMultiplayer(prev => !prev)
+  }
+
   const handleWordDay = () => {
     if (showMainScreen) setShowMainScreen(prev => !prev)
     game.startDailyGame()
@@ -124,10 +127,6 @@ export default function Home() {
 
   const handleConfig = () => {
     setShowConfig(true)
-  }
-
-  const handleFriendsPanel = () => {
-    setOpenFriendsPanel(true)
   }
 
   if (!mounted) {
@@ -263,16 +262,18 @@ export default function Home() {
                   >
                     Configuración
                   </button>
-                  <button
-                    onClick={async () => {
-                      setShowUserMenu(false);
-                      await signOutUser();
-                    }}
-                    className="max-w-full m-auto flex items-center justify-center gap-2 rounded-xl bg-[#b91c1c] px-3 py-2 text-sm font-semibold text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Cerrar sesión
-                  </button>
+                  {!showMultiplayer && (
+                    <button
+                      onClick={async () => {
+                        setShowUserMenu(false);
+                        await signOutUser();
+                      }}
+                      className="max-w-full m-auto flex items-center justify-center gap-2 rounded-xl bg-[#b91c1c] px-3 py-2 text-sm font-semibold text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Cerrar sesión
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -290,7 +291,7 @@ export default function Home() {
       <SidebarMenu
         open={openSidebar}
         onOpenChange={setOpenSidebar}
-        onShowMain={() => setShowMainScreen(true)}
+        onShowMain={handleMainScreen}
         onTutorial={() => setShowTutorial(true)}
         onDailyWord={handleWordDay}
         onSolitaire={handleSolitarie}
@@ -298,7 +299,6 @@ export default function Home() {
         onCompetitiveRecord={handleHistoryCompetitive}
         onLeaderBoard={handleLeaderBoard}
         onConfig={handleConfig}
-        onFriendsPanel={handleFriendsPanel}
         cups={cups}
         streakDaily={game.streaks?.dailyStreak ?? 0}
         streakSolitarie={game.streaks?.solitaireStreak ?? 0}
@@ -363,13 +363,6 @@ export default function Home() {
       {showLeaderBoard && <Leaderboard onClose={handleCloseLeaderBoard} />}
       {showConfig && <SettingsScreen onClose={handleCloseConfig} />}
       {showAuth && <AuthDialogContent onClose={() => setShowAuth(false)} />}
-      {openFriendsPanel && <FriendsPanel
-        onClose={() => setOpenFriendsPanel(false)}
-        onStartMultiplayer={() => {
-          setShowMainScreen(false);
-          setShowMultiplayer(true);
-        }}
-      />}
     </main>
   );
 }
