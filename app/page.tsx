@@ -18,6 +18,8 @@ import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/utils/competitive";
 
+//TODO: poner una nueva key para animacion solo una vez al dia, para que al reload no este cargando siempre
+
 export default function Home() {
   const { user, authLoading } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -107,8 +109,7 @@ export default function Home() {
   }
 
   const handleMainScreen = () => {
-    setShowMainScreen(prev => !prev)
-    setShowMultiplayer(prev => !prev)
+    location.reload()
   }
 
   const handleWordDay = () => {
