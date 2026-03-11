@@ -19,7 +19,7 @@ import {
     onOutgoingFriendRequestsSnapshot,
 } from "@/utils/social";
 import { acceptChallengeAndJoin, onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot, rejectChallenge, sendChallengeWithRoom } from "@/utils/challenges";
-import { getMultiplayerInstance } from "@/lib/multiplayer-instance";
+import { useMultiplayer } from "@/hooks/use-multiplayergame";
 
 type Props = {
     onClose: () => void;
@@ -68,7 +68,7 @@ export default function FriendsPanel({ onClose, onViewHistory, onStartMultiplaye
     const deps = getFirebase();
     if (!deps) throw new Error("Firebase no disponible");
     const { db } = deps;
-    const mp = getMultiplayerInstance(); //TODO: Hacer una sola instancia despues
+    const mp = useMultiplayer(); //TODO: Hacer una sola instancia despues
     const [q, setQ] = useState("");
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]);
