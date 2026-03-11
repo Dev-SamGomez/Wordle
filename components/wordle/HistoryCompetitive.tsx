@@ -14,11 +14,12 @@ import AuthRequiredModal from "../auth/AuthGate";
 
 interface CompetitiveRecordProps {
     onClose: () => void;
+    uid?: string | null;
 }
 
 const MAX_CUPS = 3600;
 
-export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
+export default function CompetitiveRecord({ onClose, uid = null }: CompetitiveRecordProps) {
     const { user, authLoading } = useAuth();
     const [showAuth, setShowAuth] = useState(false);
 
@@ -39,7 +40,8 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
         }
 
         setLoadingProfile(true);
-        getCompetitiveProfile(user.uid)
+        const userId = uid ?? user.uid;
+        getCompetitiveProfile(userId)
             .then((p) => {
                 if (alive) setProfile(p);
             })
@@ -53,7 +55,7 @@ export default function CompetitiveRecord({ onClose }: CompetitiveRecordProps) {
     }, [user]);
 
     if (!user) {
-        return <>{showAuth && <AuthRequiredModal onClose={() => setShowAuth(false)} />}</>;
+        return showAuth ? <AuthRequiredModal onClose={() => setShowAuth(false)} /> : null;
     }
 
     if (loadingProfile || !profile) {
