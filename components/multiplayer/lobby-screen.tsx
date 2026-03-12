@@ -3,8 +3,10 @@ import { LogIn, Plus, Trophy, Users, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SiChessdotcom } from "react-icons/si";
 import FriendsPanel from "../wordle/FriendPanel";
+import { useAuth } from "@/hooks/use-auth";
 
 export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useMultiplayer>; namePlayer: string }) => {
+    const { user } = useAuth();
     const [name, setName] = useState(namePlayer);
     const [roomInput, setRoomInput] = useState("");
     const [activeTab, setActiveTab] = useState<"matchmaking" | "manual" | "friends">("matchmaking");
@@ -188,9 +190,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                             </div>
                         </div>
                     )}
-                    {activeTab === "friends" && (
-                        <FriendsPanel game={game} />
-                    )}
+                    {activeTab === "friends" && (user ? <FriendsPanel key={user.uid} game={game} /> : null)}
                 </div>
 
                 <p className="mt-4 text-center text-xs text-muted-foreground">

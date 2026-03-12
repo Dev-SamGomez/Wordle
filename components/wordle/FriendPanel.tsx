@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X, Search, Loader2, Trophy, TrendingUp, TrendingDown, Minus, UserPlus, Swords, History } from "lucide-react";
 import { getFirebase } from "@/lib/firebase-client";
-import { collection, onSnapshot, query, where, documentId } from "firebase/firestore";
+import { collection, onSnapshot, query, where, documentId, enableNetwork, disableNetwork } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
 import {
     onFriendsSnapshot,
@@ -60,6 +60,8 @@ const TrendIcon = (t: "up" | "down" | "flat") =>
         <Minus className="w-4 h-4 text-slate-500" />
     );
 
+//TODO: trabajar en presence, hacer hook para presence
+
 export default function FriendsPanel({ game }: Props) {
     const { user } = useAuth();
     const deps = getFirebase();
@@ -69,6 +71,7 @@ export default function FriendsPanel({ game }: Props) {
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const lastSearchKeyRef = useRef<string>("");
+    const searchTokenRef = useRef(0);
     const [friendUids, setFriendUids] = useState<string[]>([]);
     const [friends, setFriends] = useState<Record<string, FriendRow>>({});
     const [incomingReqs, setIncomingReqs] = useState<any[]>([]);
@@ -87,8 +90,21 @@ export default function FriendsPanel({ game }: Props) {
     };
 
     const chunkWatchersRef = useRef<Map<string, () => void>>(new Map());
-
+    const allUnsubsRef = useRef<Set<() => void>>(new Set());
+    const addUnsub = (fn?: () => void) => { if (fn) allUnsubsRef.current.add(fn); };
+    const flushAllUnsubs = () => {
+        for (const off of allUnsubsRef.current) { try { off(); } catch { } }
+        allUnsubsRef.current.clear();
+    };
     const aliveRef = useRef(true);
+    useEffect(() => {
+        if (!db) return;
+        if (!user?.uid) {
+            disableNetwork(db).catch(() => { });
+        } else {
+            enableNetwork(db).catch(() => { });
+        }
+    }, [db, user?.uid]);
 
     useEffect(() => {
         aliveRef.current = true;
@@ -137,12 +153,14 @@ export default function FriendsPanel({ game }: Props) {
     useEffect(() => {
         return () => {
             cleanupAllFriendChunkWatchers();
+            flushAllUnsubs();
         };
     }, [])
 
     useEffect(() => {
         if (user?.uid) return;
         cleanupAllFriendChunkWatchers();
+        flushAllUnsubs();
         setFriendUids([]);
         setFriends({});
         setIncomingReqs([]);
@@ -160,6 +178,7 @@ export default function FriendsPanel({ game }: Props) {
                 const normalized = normalizeUidList(uids);
                 setFriendUids((prev) => (sameSet(prev, normalized) ? prev : normalized));
             });
+            addUnsub(unsub);
         } else {
             setFriendUids([]);
         }
@@ -232,6 +251,8 @@ export default function FriendsPanel({ game }: Props) {
                     return copy;
                 });
             });
+            addUnsub(offLb);
+            addUnsub(offPr);
             chunkWatchersRef.current.set(key, () => {
                 try { offLb(); } catch { }
                 try { offPr(); } catch { }
@@ -260,7 +281,8 @@ export default function FriendsPanel({ game }: Props) {
             if (!aliveRef.current || !localAlive) return;
             setOutgoingReqs(v);
         }, { enrich: false });
-
+        addUnsub(offIn);
+        addUnsub(offOut);
         reqUnsubsRef.current.in = offIn ?? undefined;
         reqUnsubsRef.current.out = offOut ?? undefined;
 
@@ -274,19 +296,26 @@ export default function FriendsPanel({ game }: Props) {
     const friendRows = useMemo(() => Object.values(friends).sort((a, b) => b.cups - a.cups), [friends]);
 
     const doSearch = async () => {
+        console.debug("[FriendsPanel] doSearch called. user?", !!user?.uid);
+        if (!user?.uid) return;
         if (!q.trim() || searchLoading) return;
         const key = `${q.trim().toLowerCase()}::25`;
         if (key === lastSearchKeyRef.current) return;
         lastSearchKeyRef.current = key;
         setSearchLoading(true);
+        const myToken = ++searchTokenRef.current;
         try {
             const res = await searchUsersByNicknameLowerPrefix(q, 25);
             const me = user?.uid;
+            if (myToken !== searchTokenRef.current || !user?.uid) return;
             setSearchResults(res.filter((r: any) => r.uid !== me));
-        } finally { setSearchLoading(false); }
+        } finally {
+            if (myToken === searchTokenRef.current) setSearchLoading(false);
+        }
     };
 
     const handleSend = async (targetUid: string) => {
+        if (!user?.uid) { pushToast({ kind: "error", msg: "Inicia sesión para enviar solicitudes" }); return; }
         setSendingTo((prev) => new Set(prev).add(targetUid));
         try {
             await sendFriendRequestUtil(targetUid);
@@ -299,10 +328,19 @@ export default function FriendsPanel({ game }: Props) {
     };
 
     useEffect(() => {
+        console.debug("[FriendsPanel] auth =", user?.uid ?? "NO_AUTH");
+    }, [user?.uid]);
+
+    useEffect(() => {
         let localAlive = true;
         if (!user?.uid) {
             setIncomingChallenges([]);
             setOutgoingChallenges([]);
+            setQ("");
+            setSearchResults([]);
+            setSearchLoading(false);
+            lastSearchKeyRef.current = "";
+            searchTokenRef.current++;
             return;
         }
         const offIn = onIncomingChallengesSnapshot((v: any[]) => {
@@ -313,6 +351,8 @@ export default function FriendsPanel({ game }: Props) {
             if (!aliveRef.current || !localAlive) return;
             setOutgoingChallenges(v);
         });
+        addUnsub(offIn);
+        addUnsub(offOut);
         return () => {
             offIn?.();
             offOut?.();
@@ -355,6 +395,7 @@ export default function FriendsPanel({ game }: Props) {
                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 ml-1">Buscar Jugadores</h3>
                     <div className="relative group">
                         <input
+                            disabled={!user}
                             className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-2.5 text-sm transition-all focus:border-[#538d4e] focus:ring-2 focus:ring-[#538d4e]/20 outline-none"
                             placeholder="Introduce un nickname..."
                             value={q}
