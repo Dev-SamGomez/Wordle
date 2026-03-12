@@ -9,7 +9,6 @@ export const menuItems: MenuItem[] = [
         label: "Competitivo",
         children: [
             { label: "Competitivo", action: "multiplayer" },
-            // { label: "Amigos", action: "friends" },
             { label: "Historial Competitivo", action: "competitive-record" },
             { label: "Top mejores jugadores", action: "leader-board" },
         ],
