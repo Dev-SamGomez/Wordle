@@ -11,8 +11,7 @@ interface PlayingScreenProps {
 const PlayingScreen = ({
     game,
 }: PlayingScreenProps) => {
-    console.log("STATUS:", game.gameStatus);
-    console.log("PlayingScreen opponent:", game.opponentName, "my:", game.myName);
+    
     return (
         <div className="flex min-h-screen flex-col items-center bg-background p-4">
             <div className="flex items-stretch gap-3">

@@ -347,6 +347,11 @@ io.on("connection", (socket: Socket) => {
 
         if (data.wordIndex !== current) {
             console.warn("Ignoring out-of-order/duplicate row_resolved", data, "expected", current);
+            socket.emit("row_ack", {
+                accepted: false,
+                expected: current,
+                received: data.wordIndex,
+            });
             return;
         }
 
@@ -362,6 +367,13 @@ io.on("connection", (socket: Socket) => {
             }
         }
 
+        socket.emit("row_ack", {
+            accepted: true,
+            currentWordIndex: player.currentWordIndex ?? 0,
+            wordJustFinished: data.wordIndex,
+            wasSolved: data.wasSolved,
+        });
+
         socket.to(room.id).emit("rival_progress", {
             solvedCount: player.score ?? player.currentWordIndex ?? 0,
             currentWordIndex: player.currentWordIndex ?? 0,
@@ -372,6 +384,30 @@ io.on("connection", (socket: Socket) => {
         });
 
         if (maybeFinishRoom(io, room)) return;
+    });
+
+    socket.on("leave_room", ({ code }: { code: string }) => {
+        const room = getRoomByCode(code);
+        if (!room) return;
+
+        const leaver = room.players.find(p => p.socketId === socket.id);
+        const opponent = room.players.find(p => p.socketId !== socket.id);
+
+        if (!opponent) {
+            deleteRoom(room.id);
+            return;
+        }
+
+        if (room.status === "playing" || room.status === "countdown" || room.status === "waiting") {
+            room.status = "finished";
+            io.to(room.id).emit("game_finished", {
+                winnerSocketId: opponent.socketId,
+                winnerName: opponent.name,
+                reason: "leave",
+            });
+            scheduleCleanup(room);
+            deleteRoom(room.id);
+        }
     });
 
     socket.on("disconnect", () => {
@@ -386,7 +422,7 @@ io.on("connection", (socket: Socket) => {
             if (remaining) {
                 room.status = "finished";
                 io.to(id).emit("game_finished", {
-                    winner: remaining.socketId,
+                    winnerSocketId: remaining.socketId,
                     winnerName: remaining.name,
                     reason: "abandon",
                 });
