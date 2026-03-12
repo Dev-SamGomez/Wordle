@@ -11,6 +11,11 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
     const [roomInput, setRoomInput] = useState("");
     const [activeTab, setActiveTab] = useState<"matchmaking" | "manual" | "friends">("matchmaking");
 
+    const canFindMatch = useMemo(
+        () => !!name.trim() && game.gameStatus !== "queueing" && game.gameStatus !== "countdown" && game.gameStatus !== "playing",
+        [name, game.gameStatus]
+    );
+
     const canCancelFind = useMemo(
         () => game.gameStatus === "queueing",
         [game.gameStatus]
@@ -129,6 +134,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleFindMatch}
+                                    disabled={!canFindMatch}
                                     className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#538d4e] px-4 py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                                 >
                                     <Search className="h-4 w-4" />
