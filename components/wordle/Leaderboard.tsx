@@ -1,32 +1,105 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trophy, X, Crown } from "lucide-react";
+import { Trophy, X, Crown, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { getRank } from "@/utils/getRank";
 
-export interface LeaderboardPlayer {
-    name: string;
-    cups: number;
-}
+import { collection, query, orderBy, limit, onSnapshot, where } from "firebase/firestore";
+import { getFirebase } from "@/lib/firebase-client";
 
-//Cambiar mock por get al incluir Firebase
-const MOCK_PLAYERS: LeaderboardPlayer[] = [
-    { name: "Sammy", cups: 125 },
-    { name: "Gus", cups: 45 },
-    { name: "Alan", cups: 30 },
-    { name: "Joshua", cups: 0 },
-    { name: "Ulises", cups: 0 },
-    { name: "Deme", cups: 0 },
-    { name: "Julian", cups: 0 },
-];
+import { useAuth } from "@/hooks/use-auth";
+import AuthRequiredModal from "../auth/AuthGate";
+
+export interface LeaderboardPlayer {
+    id: string;
+    nickname: string;
+    cups: number;
+    photoURL?: string | null;
+    delta: number;
+    posDelta: number;
+    trend: Trend;
+}
 
 interface LeaderboardProps {
     onClose: () => void;
     players?: LeaderboardPlayer[];
+    top?: number;
+    requireAuth?: boolean;
 }
 
-export default function Leaderboard({ onClose, players }: LeaderboardProps) {
-    const data = (players ?? MOCK_PLAYERS).sort((a, b) => b.cups - a.cups);
+type Trend = "up" | "down" | "flat";
+// type Row = LeaderboardPlayer & {
+//     delta: number;
+//     posDelta: number;
+//     trend: Trend;
+// };
+
+export default function Leaderboard({
+    onClose,
+    players,
+    top = 100,
+    requireAuth = true,
+}: LeaderboardProps) {
+    const { user, authLoading } = useAuth();
+    const [showAuth, setShowAuth] = useState(false);
+
+    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState<LeaderboardPlayer[]>([]);
+    // const prevMapRef = useRef<Map<string, { cups: number; pos: number }>>(new Map());
+
+    useEffect(() => {
+        if (!requireAuth) return;
+        if (!authLoading) setShowAuth(!user);
+    }, [authLoading, user, requireAuth]);
+
+    useEffect(() => {
+        const deps = getFirebase();
+        if (!deps) return;
+
+        if (requireAuth && !user) {
+            setRows([]);
+            setLoading(false);
+            return;
+        }
+
+        const { db } = deps;
+        const qy = query(
+            collection(db, "leaderboard"),
+            orderBy("cups", "desc"),
+            limit(top)
+        );
+
+        setLoading(true);
+        const unsub = onSnapshot(
+            qy,
+            (snap) => {
+                const base = snap.docs.map((doc) => {
+                    const d: any = doc.data();
+                    return {
+                        id: doc.id,
+                        nickname: d.nickname ?? d.name ?? "Jugador",
+                        cups: typeof d.cups === "number" ? d.cups : 0,
+                        photoURL: d.photoURL ?? null,
+                        trend: (d.trend as "up" | "down" | "flat") ?? "flat",
+                        delta: typeof d.recentDelta === "number" ? d.recentDelta : 0,
+                        posDelta: 0,
+                    } as LeaderboardPlayer;
+                });
+
+                const list = (players ?? base).slice().sort((a, b) => b.cups - a.cups);
+                setRows(list);
+                setLoading(false);
+            },
+            (err) => {
+                console.error("[LEADERBOARD] Firestore error:", err);
+                setRows([]);
+                setLoading(false);
+            }
+        );
+
+        return () => unsub();
+    }, [user, top, requireAuth, players]);
+
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isAutoScrolling, setIsAutoScrolling] = useState(true);
 
@@ -40,11 +113,9 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
         const step = () => {
             if (!el) return;
             el.scrollTop += speed;
-
             if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
                 el.scrollTop = 0;
             }
-
             animationId = requestAnimationFrame(step);
         };
 
@@ -56,7 +127,7 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
             clearTimeout(timeout);
             cancelAnimationFrame(animationId);
         };
-    }, [isAutoScrolling]);
+    }, [isAutoScrolling, rows.length]);
 
     const handleUserScroll = () => {
         setIsAutoScrolling(false);
@@ -64,15 +135,30 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
         return () => clearTimeout(timeout);
     };
 
+    if (requireAuth && !user) {
+        return <>{showAuth && <AuthRequiredModal onClose={() => setShowAuth(false)} />}</>;
+    }
+
+    if (loading) {
+        return (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-background border border-border rounded-xl w-full max-w-md p-8 flex items-center justify-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Cargando leaderboard…</span>
+                </div>
+            </div>
+        );
+    }
+
+    const list = rows;
+
     return (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-background border border-border rounded-xl w-full max-w-md flex flex-col max-h-[85dvh] overflow-hidden">
+            <div className="bg-background border border-border rounded-xl w-full max-w-md flex flex-col max-h=[85dvh] overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
                     <div className="flex items-center gap-2.5">
                         <Trophy className="w-5 h-5 text-[#b59f3b]" />
-                        <h2 className="text-foreground font-bold text-base tracking-wide">
-                            Top mejores jugadores
-                        </h2>
+                        <h2 className="text-foreground font-bold text-base tracking-wide">Top mejores jugadores</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -85,17 +171,33 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
 
                 <div className="shrink-0 px-5 pt-5 pb-3">
                     <div className="flex items-end justify-center gap-3">
-                        {data[1] && (
+                        {list[1] && (
                             <div className="flex flex-col items-center gap-1.5">
-                                <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background" style={{ borderColor: getRank(data[1].cups).color }}>
-                                    <span className="text-sm font-bold" style={{ color: getRank(data[1].cups).color }}>
-                                        {data[1].name.charAt(0).toUpperCase()}
-                                    </span>
+                                <div
+                                    className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background"
+                                    style={{ borderColor: getRank(list[1].cups).color }}
+                                >
+                                    {list[1].photoURL ? (
+                                        <img
+                                            src={list[1].photoURL}
+                                            alt="Avatar"
+                                            className="w-8 h-8 rounded-full object-cover text-sm font-bold"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    ) : (
+                                        <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                            {list[1].nickname.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
-                                <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">{data[1].name}</span>
+                                <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">
+                                    {list[1].nickname}
+                                </span>
                                 <div className="flex items-center gap-0.5">
-                                    <Trophy className="w-3 h-3" style={{ color: getRank(data[1].cups).color }} />
-                                    <span className="text-[10px] font-bold tabular-nums" style={{ color: getRank(data[1].cups).color }}>{data[1].cups}</span>
+                                    <Trophy className="w-3 h-3" style={{ color: getRank(list[1].cups).color }} />
+                                    <span className="text-[10px] font-bold tabular-nums" style={{ color: getRank(list[1].cups).color }}>
+                                        {list[1].cups}
+                                    </span>
                                 </div>
                                 <div className="w-14 h-14 bg-muted/40 border border-border rounded-t-md flex items-center justify-center">
                                     <span className="text-lg font-bold text-muted-foreground">2</span>
@@ -103,18 +205,34 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                             </div>
                         )}
 
-                        {data[0] && (
+                        {list[0] && (
                             <div className="flex flex-col items-center gap-1.5 -mt-4">
                                 <Crown className="w-5 h-5 text-[#fbbf24]" />
-                                <div className="w-14 h-14 rounded-full border-2 flex items-center justify-center bg-background" style={{ borderColor: getRank(data[0].cups).color }}>
-                                    <span className="text-base font-bold" style={{ color: getRank(data[0].cups).color }}>
-                                        {data[0].name.charAt(0).toUpperCase()}
-                                    </span>
+                                <div
+                                    className="w-14 h-14 rounded-full border-2 flex items-center justify-center bg-background"
+                                    style={{ borderColor: getRank(list[0].cups).color }}
+                                >
+                                    {list[0].photoURL ? (
+                                        <img
+                                            src={list[0].photoURL}
+                                            alt="Avatar"
+                                            className="w-8 h-8 rounded-full object-cover text-sm font-bold"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    ) : (
+                                        <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                            {list[0].nickname.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
-                                <span className="text-xs text-muted-foreground font-semibold truncate max-w-[72px]">{data[0].name}</span>
+                                <span className="text-xs text-muted-foreground font-semibold truncate max-w-[72px]">
+                                    {list[0].nickname}
+                                </span>
                                 <div className="flex items-center gap-0.5">
-                                    <Trophy className="w-3 h-3" style={{ color: getRank(data[0].cups).color }} />
-                                    <span className="text-[11px] font-bold tabular-nums" style={{ color: getRank(data[0].cups).color }}>{data[0].cups}</span>
+                                    <Trophy className="w-3 h-3" style={{ color: getRank(list[0].cups).color }} />
+                                    <span className="text-[11px] font-bold tabular-nums" style={{ color: getRank(list[0].cups).color }}>
+                                        {list[0].cups}
+                                    </span>
                                 </div>
                                 <div className="w-14 h-20 bg-muted/10 border border-[#fbbf24]/40 rounded-t-md flex items-center justify-center">
                                     <span className="text-xl font-bold text-[#fbbf24]">1</span>
@@ -122,17 +240,33 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                             </div>
                         )}
 
-                        {data[2] && (
+                        {list[2] && (
                             <div className="flex flex-col items-center gap-1.5">
-                                <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background" style={{ borderColor: getRank(data[2].cups).color }}>
-                                    <span className="text-sm font-bold" style={{ color: getRank(data[2].cups).color }}>
-                                        {data[2].name.charAt(0).toUpperCase()}
-                                    </span>
+                                <div
+                                    className="w-12 h-12 rounded-full border-2 flex items-center justify-center bg-background"
+                                    style={{ borderColor: getRank(list[2].cups).color }}
+                                >
+                                    {list[2].photoURL ? (
+                                        <img
+                                            src={list[2].photoURL}
+                                            alt="Avatar"
+                                            className="w-8 h-8 rounded-full object-cover text-sm font-bold"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    ) : (
+                                        <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                            {list[2].nickname.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
-                                <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">{data[2].name}</span>
+                                <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[64px]">
+                                    {list[2].nickname}
+                                </span>
                                 <div className="flex items-center gap-0.5">
-                                    <Trophy className="w-3 h-3" style={{ color: getRank(data[2].cups).color }} />
-                                    <span className="text-[10px] font-bold tabular-nums" style={{ color: getRank(data[2].cups).color }}>{data[2].cups}</span>
+                                    <Trophy className="w-3 h-3" style={{ color: getRank(list[2].cups).color }} />
+                                    <span className="text-[10px] font-bold tabular-nums" style={{ color: getRank(list[2].cups).color }}>
+                                        {list[2].cups}
+                                    </span>
                                 </div>
                                 <div className="w-14 h-10 bg-muted/10 border border-[#cd7f32]/40 rounded-t-md flex items-center justify-center">
                                     <span className="text-lg font-bold text-[#cd7f32]">3</span>
@@ -146,11 +280,9 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                     <div className="border-t border-muted" />
                     <div className="flex items-center justify-between py-2.5">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                            Clasificacion completa
+                            Clasificación completa
                         </span>
-                        <span className="text-[10px] text-muted-foreground tabular-nums">
-                            {data.length} jugadores
-                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">{list.length} jugadores</span>
                     </div>
                 </div>
 
@@ -160,71 +292,106 @@ export default function Leaderboard({ onClose, players }: LeaderboardProps) {
                     onTouchStart={handleUserScroll}
                     onWheel={handleUserScroll}
                 >
-                    <div className="flex flex-col gap-1.5">
-                        {data.map((player, idx) => {
-                            const rank = getRank(player.cups);
-                            const position = idx + 1;
-                            const isTop3 = position <= 3;
-                            const posColors = [
-                                "text-[#fbbf24]",
-                                "text-[#9ca3af]",
-                                "text-[#cd7f32]",
-                            ];
+                    {list.length === 0 ? (
+                        <div className="text-center py-8">
+                            <p className="text-muted-foreground text-sm">Aún no hay jugadores en el leaderboard</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-1.5">
+                            {list.map((player, idx) => {
+                                const rank = getRank(player.cups);
+                                const position = idx + 1;
+                                const isTop3 = position <= 3;
+                                const posColors = ["text-[#fbbf24]", "text-[#9ca3af]", "text-[#cd7f32]"];
+                                const TrendIcon =
+                                    player.trend === "up" ? TrendingUp :
+                                        player.trend === "down" ? TrendingDown :
+                                            Minus;
 
-                            return (
-                                <div
-                                    key={`${player.name}-${idx}`}
-                                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isTop3
-                                        ? "bg-background border-border"
-                                        : "bg-background border-border"
-                                        }`}
-                                >
-                                    <div className="w-7 flex items-center justify-center shrink-0">
-                                        <span
-                                            className={`text-sm font-bold tabular-nums ${isTop3 ? posColors[position - 1] : "text-muted-foreground"
-                                                }`}
-                                        >
-                                            {position}
-                                        </span>
-                                    </div>
-
+                                return (
                                     <div
-                                        className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 bg-background"
-                                        style={{ borderColor: rank.color + "88" }}
+                                        key={`${player.id}-${idx}`}
+                                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isTop3 ? "bg-background border-border" : "bg-background border-border"
+                                            }`}
                                     >
-                                        <span
-                                            className="text-xs font-bold"
-                                            style={{ color: rank.color }}
-                                        >
-                                            {player.name.charAt(0).toUpperCase()}
-                                        </span>
-                                    </div>
+                                        <div className="w-7 flex items-center justify-center shrink-0">
+                                            <span
+                                                className={`text-sm font-bold tabular-nums ${isTop3 ? posColors[position - 1] : "text-muted-foreground"
+                                                    }`}
+                                            >
+                                                {position}
+                                            </span>
+                                        </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-muted-foreground truncate">
-                                            {player.name}
-                                        </p>
-                                        <p
-                                            className="text-[10px] font-medium uppercase tracking-wider"
-                                            style={{ color: rank.color }}
+                                        <div
+                                            className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 bg-background"
+                                            style={{ borderColor: rank.color + "88" }}
+                                            title={player.nickname}
                                         >
-                                            {rank.label}
-                                        </p>
-                                    </div>
+                                            {player.photoURL ? (
+                                                <img
+                                                    src={player.photoURL}
+                                                    alt="Avatar"
+                                                    className="w-8 h-8 rounded-full object-cover text-sm font-bold"
+                                                    referrerPolicy="no-referrer"
+                                                />
+                                            ) : (
+                                                <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                                    {player.nickname.charAt(0).toUpperCase()}
+                                                </span>
+                                            )}
+                                        </div>
 
-                                    <div className="flex items-center gap-1 shrink-0">
-                                        <Trophy className="w-3.5 h-3.5" style={{ color: rank.color }} />
-                                        <span
-                                            className="text-sm font-bold tabular-nums"
-                                            style={{ color: rank.color }}
-                                        >
-                                            {player.cups}
-                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-muted-foreground truncate">{player.nickname}</p>
+                                            <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: rank.color }}>
+                                                {rank.label}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <span
+                                                title={
+                                                    player.trend === "up"
+                                                        ? `En ascenso (${player.delta > 0 ? "+" : ""}${player.delta})`
+                                                        : player.trend === "down"
+                                                            ? `En descenso (${player.delta})`
+                                                            : "Sin cambios"
+                                                }
+                                            >
+                                                <TrendIcon
+                                                    className={`w-3.5 h-3.5 ${player.trend === "up"
+                                                        ? "text-emerald-500"
+                                                        : player.trend === "down"
+                                                            ? "text-red-500"
+                                                            : "text-muted-foreground"
+                                                        }`}
+                                                    aria-hidden="true"
+                                                    focusable="false"
+                                                />
+                                            </span>
+
+                                            <Trophy className="w-3.5 h-3.5" style={{ color: rank.color }} />
+                                            <span className="text-sm font-bold tabular-nums" style={{ color: rank.color }}>
+                                                {player.cups}
+                                            </span>
+
+                                            {player.delta !== 0 && (
+                                                <span
+                                                    className={`text-[10px] font-bold ${player.delta > 0 ? "text-emerald-500" : "text-red-500"
+                                                        }`}
+                                                    title={`Cambio de copas: ${player.delta > 0 ? "+" : ""}${player.delta}`}
+                                                >
+                                                    {player.delta > 0 ? "+" : ""}
+                                                    {player.delta}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -6,8 +6,8 @@ export type MenuAction =
     | "multiplayer"
     | "competitive-record"
     | "leader-board"
-    | "config";
-
+    | "config"
+    | "friends";
 export interface MenuItem {
     label: string;
     action?: MenuAction;

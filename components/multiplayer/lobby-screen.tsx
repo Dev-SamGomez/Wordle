@@ -3,8 +3,8 @@ import { LogIn, Plus, Trophy, Users, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SiChessdotcom } from "react-icons/si";
 
-export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> }) => {
-    const [name, setName] = useState("");
+export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useMultiplayer>; namePlayer: string }) => {
+    const [name, setName] = useState(namePlayer);
     const [roomInput, setRoomInput] = useState("");
     const [activeTab, setActiveTab] = useState<"matchmaking" | "manual">("matchmaking");
 
@@ -19,13 +19,13 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
     );
 
     const canCreate = useMemo(
-        () => !!name.trim() && game.gameStatus !== "countdown" && game.gameStatus !== "playing",
-        [name, game.gameStatus]
+        () => game.gameStatus !== "countdown" && game.gameStatus !== "playing",
+        [game.gameStatus]
     );
 
     const canJoin = useMemo(
-        () => !!name.trim() && !!roomInput.trim() && game.gameStatus !== "countdown" && game.gameStatus !== "playing",
-        [name, roomInput, game.gameStatus]
+        () => !!roomInput.trim() && game.gameStatus !== "countdown" && game.gameStatus !== "playing",
+        [roomInput, game.gameStatus]
     );
 
     const isQueueing = game.gameStatus === "queueing";
@@ -55,7 +55,7 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                     <div className="pt-5 flex items-center justify-center gap-2">
                         <span className="inline-flex items-center gap-1 text-base font-bold text-foreground tabular-nums">
                             <Trophy className="h-4 w-4 text-[#c9b458]" />
-                            {game.competitive.cups}
+                            {game.getCompetitiveCups()}
                         </span>
 
                         {typeof game.competitive.lastMatchDelta === "number" && (
@@ -77,25 +77,6 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                 </div>
 
                 <div className="rounded-2xl border border-border bg-muted p-6 shadow-xl shadow-black/30">
-                    <div className="mb-6">
-                        <label
-                            htmlFor="player-name"
-                            className="mb-2 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
-                        >
-                            Tu nombre
-                        </label>
-                        <div className="relative">
-                            <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <input
-                                id="player-name"
-                                type="text"
-                                placeholder="Ingresa tu nombre..."
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full rounded-xl border border-border bg-background px-4 py-3 pl-10 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-[#538d4e] focus:ring-2 focus:ring-[#538d4e]/20"
-                            />
-                        </div>
-                    </div>
                     
                     <div className="mb-5 flex gap-1 rounded-xl bg-background p-1">
                         <button
@@ -140,11 +121,10 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleFindMatch}
-                                    disabled={!canFindMatch}
                                     className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#538d4e] px-4 py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                                 >
                                     <Search className="h-4 w-4" />
-                                    Buscar partida
+                                    Competir
                                 </button>
 
                                 <button
@@ -161,7 +141,7 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                         <div className="space-y-6">
                             <div className="space-y-3">
                                 <p className="text-sm text-muted-foreground">
-                                    Crea una nueva sala y comparte el código con tu rival para empezar.
+                                    Crea una partida y comparte el código con tu rival para empezar.
                                 </p>
                                 <button
                                     onClick={() => game.createRoom(name)}
@@ -169,7 +149,7 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#538d4e] px-4 py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                                 >
                                     <Plus className="h-4 w-4" />
-                                    Crear nueva sala
+                                    Crear nueva partida
                                 </button>
                             </div>
 
@@ -179,7 +159,7 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                                         htmlFor="room-id"
                                         className="mb-2 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
                                     >
-                                        Código de sala
+                                        Código de partida
                                     </label>
                                     <input
                                         id="room-id"
@@ -196,7 +176,7 @@ export const LobbyScreen = ({ game }: { game: ReturnType<typeof useMultiplayer> 
                                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#538d4e] px-4 py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                                 >
                                     <LogIn className="h-4 w-4" />
-                                    Unirse a la sala
+                                    Unirse a la partida
                                 </button>
                             </div>
                         </div>

@@ -10,7 +10,6 @@ export async function copyGameCode(roomCode: string) {
             document.execCommand("copy")
             document.body.removeChild(textarea)
         } catch {
-            console.log("Error al copiar")
         }
     }
 }
