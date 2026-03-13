@@ -104,7 +104,7 @@ export default function Home() {
 
   const handleSolitarie = () => {
     if (showMainScreen) setShowMainScreen(prev => !prev)
-    game.resetGame()
+    game.startSolitaire()
     if (showMultiplayer) setShowMultiplayer(prev => !prev)
   }
 
@@ -339,7 +339,7 @@ export default function Home() {
                 {game.gameStatus !== "playing" && (
                   <div className="flex justify-center">
                     <button
-                      onClick={game.gameMode === "daily" ? game.resetGame : game.resetGame}
+                      onClick={game.gameMode === "daily" ? game.startDailyGame : game.resetGame}
                       className="px-6 py-3 bg-accent text-accent-foreground font-bold rounded hover:brightness-110 transition-colors text-sm"
                     >
                       {game.gameMode === "daily" ? "Jugar solitario" : "Jugar de nuevo"}
