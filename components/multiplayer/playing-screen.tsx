@@ -3,6 +3,7 @@ import { Board } from "../wordle/Board";
 import { Keyboard } from "../wordle/Keyboard";
 import { Toast } from "../wordle/Toast";
 import RoundDots from "./round-dots";
+import { usePresenceFirestore } from "@/hooks/use-presence";
 
 interface PlayingScreenProps {
     game: ReturnType<typeof useMultiplayer>;
@@ -11,7 +12,8 @@ interface PlayingScreenProps {
 const PlayingScreen = ({
     game,
 }: PlayingScreenProps) => {
-    
+    const presence = usePresenceFirestore();
+    presence.setPlaying(true);
     return (
         <div className="flex min-h-screen flex-col items-center bg-background p-4">
             <div className="flex items-stretch gap-3">

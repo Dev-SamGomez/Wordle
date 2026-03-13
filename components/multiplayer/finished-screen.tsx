@@ -1,5 +1,6 @@
 import { Equal, LogOut, RotateCcw, ShieldOff, Trophy } from "lucide-react";
 import RoundDots from "./round-dots";
+import { usePresenceFirestore } from "@/hooks/use-presence";
 
 interface FinishedScreenProps {
     winnerSocketId: string | "draw" | null;
@@ -22,8 +23,10 @@ const FinishedScreen = ({
     onLeave,
     nameOpponent
 }: FinishedScreenProps) => {
+    const presence = usePresenceFirestore();
+    presence.setPlaying(false);
     let result: "win" | "lose" | "draw";
-    
+
     if (!winnerSocketId || winnerSocketId === "draw") {
         result = "draw";
     } else {
@@ -56,6 +59,11 @@ const FinishedScreen = ({
             accentColor: "#c9b458",
         },
     }[result];
+
+    const handleOnLeave = () => {
+        presence.setOnline()
+        onLeave()
+    }
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -115,7 +123,7 @@ const FinishedScreen = ({
                                 {rematchStatus === "waiting" ? "Esperando..." : "Revancha"}
                             </button>
                             <button
-                                onClick={onLeave}
+                                onClick={handleOnLeave}
                                 className="flex items-center justify-center gap-2 rounded-xl border border-border bg-muted px-5 py-3 text-sm font-semibold text-foreground transition-all hover:bg-muted active:scale-[0.98]"
                             >
                                 <LogOut className="h-4 w-4" />

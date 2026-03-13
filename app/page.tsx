@@ -17,6 +17,7 @@ import { signOutUser } from "@/lib/auth-client";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/utils/competitive";
+import { usePresenceFirestore } from "@/hooks/use-presence";
 
 //TODO: poner una nueva key para animacion solo una vez al dia, para que al reload no este cargando siempre
 
@@ -36,6 +37,7 @@ export default function Home() {
 
   const game = useGame();
   const cups = game.getCompetitiveCups();
+  usePresenceFirestore({ heartbeatMs: 60_000, staleMs: 180_000, platform: "web" });
   const [showAuth, setShowAuth] = useState(false);
   const [lastCups, setLastCups] = useState(cups);
 
