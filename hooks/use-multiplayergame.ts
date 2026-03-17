@@ -16,6 +16,8 @@ const EMPTY_PROFILE: CompetitiveProfile = {
     history: [],
 };
 
+const MAX_GUESSES = 6;
+
 export function useMultiplayer() {
     const game = useGame();
 
@@ -147,15 +149,15 @@ export function useMultiplayer() {
 
         s.on("rival_progress", (data: RivalUpdate) => {
             setRivalScore(data.solvedCount);
+            setRivalWordIndex(data.currentWordIndex);
 
-            setRivalWordIndex((prev) => {
-                if (data.currentWordIndex !== prev) {
-                    setRivalBoard([]);
+            setRivalBoard((prev) => {
+                const eval5 = (data.evaluation ?? []).slice(0, 5);
+                if (prev.length >= MAX_GUESSES) {
+                    return [...prev.slice(1), eval5];
                 }
-                return data.currentWordIndex;
+                return [...prev, eval5];
             });
-
-            setRivalBoard((prev) => [...prev, data.evaluation]);
 
             if (data.wordFinished && typeof data.wordIndex === "number") {
                 const idx = data.wordIndex;
@@ -165,6 +167,7 @@ export function useMultiplayer() {
                     next[idx] = solved ? "win" : "loss";
                     return next;
                 });
+                setTimeout(() => setRivalBoard([]), 1200);
             }
         });
 
@@ -307,7 +310,7 @@ export function useMultiplayer() {
 
                 const sol = solution?.toUpperCase?.() ?? solution;
                 const dedupeKey = `${sol}:${rowIndex}`;
-                if (!wordFinished) return;
+
                 if (processedRevealKeysRef.current.has(dedupeKey)) return;
                 processedRevealKeysRef.current.add(dedupeKey);
 
@@ -321,8 +324,10 @@ export function useMultiplayer() {
                     wordIndex: wIdxFromSolution,
                     wasSolved,
                     lastEval: evaluation,
-                    wordFinished: true,
+                    wordFinished,
                 });
+
+                if (!wordFinished) return;
 
                 setRoundResultsPlayer((prev) => {
                     const next = [...prev];
