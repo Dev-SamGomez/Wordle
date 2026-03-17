@@ -4,12 +4,18 @@ import { useMemo, useState } from "react";
 import { SiChessdotcom } from "react-icons/si";
 import FriendsPanel from "../wordle/FriendPanel";
 import { useAuth } from "@/hooks/use-auth";
+import { usePresenceFirestore } from "@/hooks/use-presence";
 
 export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useMultiplayer>; namePlayer: string }) => {
     const { user } = useAuth();
-    const [name, setName] = useState(namePlayer);
+    const presence = usePresenceFirestore();
     const [roomInput, setRoomInput] = useState("");
     const [activeTab, setActiveTab] = useState<"matchmaking" | "manual" | "friends">("matchmaking");
+
+    const canFindMatch = useMemo(
+        () => !!namePlayer.trim() && game.gameStatus !== "queueing" && game.gameStatus !== "countdown" && game.gameStatus !== "playing",
+        [namePlayer, game.gameStatus]
+    );
 
     const canCancelFind = useMemo(
         () => game.gameStatus === "queueing",
@@ -29,12 +35,24 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
     const isQueueing = game.gameStatus === "queueing";
 
     const handleFindMatch = () => {
-        game.findMatch(name);
+        presence.setBusy()
+        game.findMatch(namePlayer);
     };
 
     const handleCancelFind = () => {
+        presence.setOnline()
         game.cancelFind();
     };
+
+    const handleJoinRoom = () => {
+        presence.setBusy()
+        game.joinRoom(roomInput, namePlayer)
+    }
+
+    const handleCreateRoom = () => {
+        presence.setBusy()
+        game.createRoom(namePlayer)
+    }
 
     return (
         <div className="flex min-h-screen items-center bg-background">
@@ -129,6 +147,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleFindMatch}
+                                    disabled={!canFindMatch}
                                     className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#538d4e] px-4 py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                                 >
                                     <Search className="h-4 w-4" />
@@ -153,7 +172,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                                     Crea una partida y comparte el código con tu rival para empezar.
                                 </p>
                                 <button
-                                    onClick={() => game.createRoom(name)}
+                                    onClick={handleCreateRoom}
                                     disabled={!canCreate}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#538d4e] px-4 py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                                 >
@@ -180,7 +199,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
                                     />
                                 </div>
                                 <button
-                                    onClick={() => game.joinRoom(roomInput, name)}
+                                    onClick={handleJoinRoom}
                                     disabled={!canJoin}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#538d4e] px-4 py-3 text-sm font-semibold text-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                                 >

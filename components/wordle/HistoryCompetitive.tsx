@@ -124,7 +124,7 @@ export default function CompetitiveRecord({ onClose, uid = null }: CompetitiveRe
                                     <div
                                         className="h-full rounded-full transition-all duration-700"
                                         style={{
-                                            width: `${Math.min((profile.cups / MAX_CUPS) * 100, 100)}%`,
+                                            width: `${Math.min((profile.cups == undefined ? 0 : profile.cups / MAX_CUPS) * 100, 100)}%`,
                                             background: `linear-gradient(90deg, ${rank.color}cc, ${rank.color})`,
                                         }}
                                     />
@@ -186,6 +186,13 @@ export default function CompetitiveRecord({ onClose, uid = null }: CompetitiveRe
 
                             {(() => {
                                 const nextRank = RANKS.find((r) => r.min > profile.cups);
+                                if (nextRank == undefined) {
+                                    return (
+                                        <p className="text-[11px] text-center mt-3" style={{ color: rank.color }}>
+                                            Rangos
+                                        </p>
+                                    );
+                                }
                                 if (!nextRank) {
                                     return (
                                         <p className="text-[11px] text-center mt-3" style={{ color: rank.color }}>

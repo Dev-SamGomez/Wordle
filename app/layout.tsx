@@ -27,7 +27,6 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const theme = (await cookies()).get("theme")?.value as "light" | "dark" | "system" | undefined;
-
   const serverClass =
     theme === "dark"
       ? "dark"
