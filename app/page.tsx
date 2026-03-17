@@ -17,6 +17,7 @@ import { signOutUser } from "@/lib/auth-client";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/utils/competitive";
+import { usePresenceFirestore } from "@/hooks/use-presence";
 
 //TODO: poner una nueva key para animacion solo una vez al dia, para que al reload no este cargando siempre
 
@@ -36,6 +37,7 @@ export default function Home() {
 
   const game = useGame();
   const cups = game.getCompetitiveCups();
+  usePresenceFirestore({ heartbeatMs: 60_000, staleMs: 180_000, platform: "web" });
   const [showAuth, setShowAuth] = useState(false);
   const [lastCups, setLastCups] = useState(cups);
 
@@ -104,7 +106,7 @@ export default function Home() {
 
   const handleSolitarie = () => {
     if (showMainScreen) setShowMainScreen(prev => !prev)
-    game.resetGame()
+    game.startSolitaire()
     if (showMultiplayer) setShowMultiplayer(prev => !prev)
   }
 
@@ -339,7 +341,7 @@ export default function Home() {
                 {game.gameStatus !== "playing" && (
                   <div className="flex justify-center">
                     <button
-                      onClick={game.gameMode === "daily" ? game.resetGame : game.resetGame}
+                      onClick={game.gameMode === "daily" ? game.startDailyGame : game.resetGame}
                       className="px-6 py-3 bg-accent text-accent-foreground font-bold rounded hover:brightness-110 transition-colors text-sm"
                     >
                       {game.gameMode === "daily" ? "Jugar solitario" : "Jugar de nuevo"}
