@@ -410,6 +410,80 @@ io.on("connection", (socket: Socket) => {
         }
     });
 
+    socket.on("draw_offer", ({ code }: { code: string }) => {
+        const room = getRoomByCode(code);
+        if (!room || room.status !== "playing") return;
+
+        if ((room as any).pendingDrawBy && (room as any).pendingDrawBy !== socket.id) {
+            socket.emit("draw_offer_ack", { ok: false, reason: "pending_offer" });
+            return;
+        }
+
+        const me = room.players.find(p => p.socketId === socket.id);
+        const opponent = room.players.find(p => p.socketId !== socket.id);
+        if (!me || !opponent) return;
+
+        (room as any).pendingDrawBy = socket.id;
+
+        socket.emit("draw_offer_ack", { ok: true });
+        io.to(opponent.socketId).emit("draw_offer", {
+            by: me.socketId,
+            byName: me.name,
+        });
+
+        (room as any).drawTimeout = setTimeout(() => {
+            if ((room as any).pendingDrawBy) {
+                io.to(room.id).emit("draw_declined", { by: opponent.socketId, auto: true });
+                (room as any).pendingDrawBy = null;
+            }
+        }, 20000);
+    });
+
+    socket.on("draw_response", ({ code, accept }: { code: string; accept: boolean }) => {
+        const room = getRoomByCode(code);
+        if (!room || room.status !== "playing") return;
+
+        const requesterId = (room as any).pendingDrawBy;
+        if (!requesterId) return;
+
+        if ((room as any).drawTimeout) {
+            clearTimeout((room as any).drawTimeout);
+            (room as any).drawTimeout = null;
+        }
+
+        if (!accept) {
+            io.to(room.id).emit("draw_declined", { by: socket.id, auto: false });
+            (room as any).pendingDrawBy = null;
+            return;
+        }
+
+        room.status = "finished";
+        io.to(room.id).emit("game_finished", {
+            winnerSocketId: "draw",
+            winnerName: "Empate",
+            reason: "draw",
+        });
+        (room as any).pendingDrawBy = null;
+        scheduleCleanup(room);
+    });
+
+    socket.on("surrender", ({ code }: { code: string }) => {
+        const room = getRoomByCode(code);
+        if (!room || room.status !== "playing") return;
+
+        const loser = room.players.find(p => p.socketId === socket.id);
+        const winner = room.players.find(p => p.socketId !== socket.id);
+        if (!loser || !winner) return;
+
+        room.status = "finished";
+        io.to(room.id).emit("game_finished", {
+            winnerSocketId: winner.socketId,
+            winnerName: winner.name,
+            reason: "surrender",
+        });
+        scheduleCleanup(room);
+    });
+
     socket.on("disconnect", () => {
         for (const [id, room] of roomsById.entries()) {
             const player = room.players.find(p => p.socketId === socket.id);
