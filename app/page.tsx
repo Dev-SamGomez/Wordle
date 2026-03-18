@@ -141,7 +141,9 @@ export default function Home() {
   }
 
   return (
-    <main className="h-dvh bg-background flex flex-col items-center relative select-none overflow-hidden">
+    <main
+      className={"h-dvh bg-background flex flex-col items-center relative select-none"}
+    >
 
       <button
         className="absolute py-2 sm:py-3 left-4 text-muted-foreground hover:text-foreground transition-colors"
@@ -327,7 +329,7 @@ export default function Home() {
               <MultiplayerHome />
             ) : (
               <>
-                <div className="flex flex-col p-10 items-center sm:gap-4 justify-center min-h-0">
+                <div className="flex flex-col items-center justify-center min-h-0 flex-1 px-4 py-2 gap-2">
                   <Board
                     guesses={game.guesses}
                     evaluations={game.evaluations}
