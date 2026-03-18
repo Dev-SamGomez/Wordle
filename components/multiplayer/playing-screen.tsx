@@ -5,7 +5,7 @@ import { Toast } from "../wordle/Toast";
 import RoundDots from "./round-dots";
 import { RivalMiniBoard } from "./mini-board-rival";
 import { usePresenceFirestore } from "@/hooks/use-presence";
-
+import DrawModal from "./draw-modal";
 interface PlayingScreenProps {
     game: ReturnType<typeof useMultiplayer>;
 }
@@ -28,9 +28,11 @@ const PlayingScreen = ({
                     <span className="text-xs font-semibold text-foreground">Tu</span>
                     <RoundDots results={game.roundResultsPlayer} totalRounds={3} />
                 </div>
+
                 <div className="flex items-center">
                     <span className="text-xs font-bold text-muted-foreground">VS</span>
                 </div>
+
                 <div className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-border bg-muted py-3 px-2">
                     <span className="text-xs font-semibold text-foreground">
                         {game.opponentName}
@@ -38,12 +40,30 @@ const PlayingScreen = ({
                     <RoundDots results={game.roundResultsRival} totalRounds={3} />
                 </div>
             </div>
+            <div className="mt-3 flex items-center justify-center gap-2">
+                <button
+                    onClick={game.offerDraw}
+                    disabled={game.gameStatus !== "playing" || !(game.drawStatus === "idle")}
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold bg-muted text-foreground hover:bg-muted/80 disabled:opacity-50"
+                    title="Proponer empate"
+                >
+                    Empate
+                </button>
+                <button
+                    onClick={game.surrender}
+                    disabled={game.gameStatus !== "playing"}
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(var(--destructive))] text-white hover:opacity-90 disabled:opacity-50"
+                    title="Rendirse"
+                >
+                    Rendirse
+                </button>
+            </div>
 
-            <div className="pt-5 text-xs text-[hsl(var(--destructive))]">
+            <div className="pt-3 text-xs text-[hsl(var(--destructive))]">
                 Palabra {game.currentWordIndex < 3 ? game.currentWordIndex + 1 : game.currentWordIndex}/3
             </div>
 
-            <div className="w-full px-4 pt-5">
+            <div className="w-full px-4 pt-3">
                 <div
                     className="relative mx-auto md:block"
                     style={{
@@ -96,8 +116,26 @@ const PlayingScreen = ({
                 <Keyboard onKey={game.handleKeyPress} keyboardColors={game.keyboardColors} />
             </div>
 
+            {game.drawStatus === "offering" && (
+                <Toast message={"Esperando respuesta…"} />
+            )}
+            {game.drawStatus === "declined" && (
+                <Toast message={"Empate rechazado"} />
+            )}
+            {game.drawStatus === "expired" && (
+                <Toast message={"Empate expiró"} />
+            )}
+
             {!(game.toastMessage === "Ganaste!" || game.toastMessage.includes("Perdiste")) && (
                 <Toast message={game.toastMessage} />
+            )}
+
+            {game.drawStatus === "incoming" && (
+                <DrawModal
+                    handleAcceptDraw={() => game.respondDraw(true)}
+                    handleRejectDraw={() => game.respondDraw(false)}
+                    opponentName={game.drawOfferFrom?.name}
+                />
             )}
         </div>
 
