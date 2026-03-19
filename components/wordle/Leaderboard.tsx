@@ -220,7 +220,7 @@ export default function Leaderboard({
                                             referrerPolicy="no-referrer"
                                         />
                                     ) : (
-                                        <span className="text-sm font-bold" style={{ color: getRank(list[1].cups).color }}>
+                                        <span className="text-sm font-bold" style={{ color: getRank(list[1].cups ?? 0).color }}>
                                             {list[0].nickname.charAt(0).toUpperCase()}
                                         </span>
                                     )}

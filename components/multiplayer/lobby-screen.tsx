@@ -55,7 +55,7 @@ export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useM
     }
 
     return (
-        <div className="flex min-h-screen items-center bg-background">
+        <div className="flex h-dvh items-center justify-center bg-background overflow-hidden">
             <div className="w-full max-w-md mx-auto">
                 <div className="mb-8 text-center">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/15 ring-1 ring-[#538d4e]/30">
