@@ -3,6 +3,23 @@
 import { getFirebase } from "@/lib/firebase-client";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import type { CompetitiveProfile } from "@/data/competitive-res";
+import { num } from "./normalize-numbers";
+
+
+export function normalizeCompetitiveProfile(input: Partial<CompetitiveProfile> | null | undefined): CompetitiveProfile {
+    return {
+        cups: num(input?.cups),
+        wins: num(input?.wins),
+        losses: num(input?.losses),
+        draws: num(input?.draws),
+        gamesPlayed: num(input?.gamesPlayed),
+        lastUpdated:
+            typeof (input as any)?.lastUpdated === "string"
+                ? (input as any).lastUpdated
+                : new Date().toISOString(),
+        history: Array.isArray(input?.history) ? input!.history : [],
+    };
+}
 
 export async function getCompetitiveProfile(uid: string): Promise<CompetitiveProfile> {
     const deps = getFirebase();
@@ -13,27 +30,27 @@ export async function getCompetitiveProfile(uid: string): Promise<CompetitivePro
     const snap = await getDoc(ref);
 
     if (!snap.exists()) {
-        return {
+        return normalizeCompetitiveProfile({
             cups: 0,
             wins: 0,
             losses: 0,
             draws: 0,
             gamesPlayed: 0,
             lastUpdated: new Date().toISOString(),
-            history: []
-        };
+            history: [],
+        });
     }
 
     const data = snap.data();
-    return {
-        cups: data.cups,
-        wins: data.wins,
-        losses: data.losses,
-        draws: data.draws,
-        gamesPlayed: data.gamesPlayed,
-        lastUpdated: data.lastUpdated?.toDate().toISOString() ?? new Date().toISOString(),
-        history: data.history ?? [],
-    };
+    return normalizeCompetitiveProfile({
+        cups: (data as any).cups,
+        wins: (data as any).wins,
+        losses: (data as any).losses,
+        draws: (data as any).draws,
+        gamesPlayed: (data as any).gamesPlayed,
+        lastUpdated: data.lastUpdated?.toDate?.().toISOString?.() ?? new Date().toISOString(),
+        history: (data as any).history ?? [],
+    });
 }
 
 export async function saveCompetitiveProfileToFirestore(uid: string, p: CompetitiveProfile) {
@@ -41,10 +58,12 @@ export async function saveCompetitiveProfileToFirestore(uid: string, p: Competit
     if (!deps) throw new Error("Firebase no disponible");
     const { db } = deps;
 
+    const safe = normalizeCompetitiveProfile(p);
+
     await setDoc(
         doc(db, "profiles", uid),
         {
-            ...p,
+            ...safe,
             lastUpdated: serverTimestamp(),
         },
         { merge: true }
@@ -79,17 +98,21 @@ export async function updateLeaderboardFromProfile(uid: string, profile: Competi
     const nickname =
         auth.currentUser?.displayName ?? auth.currentUser?.email?.split("@")[0] ?? "Jugador";
 
-    const { trend, recentDelta, lastResult, lastTs, form } = computeTrendFromHistory(profile.history ?? [], 5);
+    const safeProfile = normalizeCompetitiveProfile(profile);
+    const { trend, recentDelta, lastResult, lastTs, form } = computeTrendFromHistory(
+        safeProfile.history ?? [],
+        5
+    );
 
     await setDoc(
         doc(db, "leaderboard", uid),
         {
             nickname,
-            cups: profile.cups,
-            wins: profile.wins,
-            losses: profile.losses,
-            draws: profile.draws,
-            gamesPlayed: profile.gamesPlayed,
+            cups: safeProfile.cups,
+            wins: safeProfile.wins,
+            losses: safeProfile.losses,
+            draws: safeProfile.draws,
+            gamesPlayed: safeProfile.gamesPlayed,
             updatedAt: serverTimestamp(),
             photoURL: auth.currentUser?.photoURL ?? null,
             trend,

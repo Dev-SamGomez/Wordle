@@ -1,4 +1,5 @@
 import { CompetitiveProfile, CompetitiveResult } from "@/data/competitive-res";
+import { num } from "./normalize-numbers";
 
 const FLOOR_CUPS = 0;
 
@@ -16,16 +17,25 @@ export function applyCompetitiveResult(
     context?: { roomCode?: string | null; opponentId?: string | null }
 ): CompetitiveProfile {
     const delta = resultToDelta(result);
-    let cups = profile.cups + delta;
+
+    const base = {
+        cups: num(profile.cups),
+        wins: num(profile.wins),
+        losses: num(profile.losses),
+        draws: num(profile.draws),
+        gamesPlayed: num(profile.gamesPlayed),
+    };
+
+    let cups = base.cups + delta;
     if (cups < FLOOR_CUPS) cups = FLOOR_CUPS;
 
     const updated: CompetitiveProfile = {
         ...profile,
         cups,
-        wins: profile.wins + (result === "win" ? 1 : 0),
-        losses: profile.losses + (result === "lose" ? 1 : 0),
-        draws: profile.draws + (result === "draw" ? 1 : 0),
-        gamesPlayed: profile.gamesPlayed + 1,
+        wins: base.wins + (result === "win" ? 1 : 0),
+        losses: base.losses + (result === "lose" ? 1 : 0),
+        draws: base.draws + (result === "draw" ? 1 : 0),
+        gamesPlayed: base.gamesPlayed + 1,
         lastUpdated: new Date().toISOString(),
         history: [
             {
@@ -35,12 +45,12 @@ export function applyCompetitiveResult(
                 roomCode: context?.roomCode ?? null,
                 opponentId: context?.opponentId ?? null,
             },
-            ...profile.history.slice(0, 49),
+            ...(Array.isArray(profile.history) ? profile.history.slice(0, 49) : []),
         ],
     };
-
     return updated;
 }
+
 
 export function formatCups(n: number) {
     if (n < 1000) return String(n);

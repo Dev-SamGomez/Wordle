@@ -8,7 +8,7 @@ import { CompetitiveProfile, CompetitiveResult } from "@/data/competitive-res";
 import { RivalUpdate } from "@/data/rival-update-type";
 import { GameFinishedPayload } from "@/data/game-finished-payload-type";
 import { getCurrentUser } from "@/lib/auth-client";
-import { getCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/utils/competitive-firestore";
+import { getCompetitiveProfile, normalizeCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/utils/competitive-firestore";
 
 const EMPTY_PROFILE: CompetitiveProfile = {
     cups: 0, wins: 0, losses: 0, draws: 0, gamesPlayed: 0,
@@ -209,9 +209,11 @@ export function useMultiplayer() {
                 result = data.winnerSocketId === myId ? "win" : "lose";
             }
 
-            const freshProfile = user
+            const freshProfileRaw = user
                 ? await getCompetitiveProfile(user.uid)
                 : profileRef.current;
+
+            const freshProfile = normalizeCompetitiveProfile(freshProfileRaw ?? EMPTY_PROFILE);
 
             const updated = applyCompetitiveResult(freshProfile, result, {
                 roomCode: roomId,
