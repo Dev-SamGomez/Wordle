@@ -146,7 +146,7 @@ export default function Home() {
     >
 
       <button
-        className="absolute py-2 sm:py-3 left-4 text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute z-50 py-2 sm:py-3 left-4 text-muted-foreground hover:text-foreground transition-colors"
         type="button"
         onClick={() => setOpenSidebar(true)}
         aria-label="Abrir menu"
