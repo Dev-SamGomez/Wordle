@@ -16,7 +16,7 @@ interface MainScreenProps {
     onTutorial: () => void;
 }
 
-export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onTutorial}: MainScreenProps) {
+export default function MainScreen({ onDailyWord, onSolitaire, onMultiplayer, onTutorial }: MainScreenProps) {
     const [revealedCount, setRevealedCount] = useState(0);
     const [flippedLetters, setFlippedLetters] = useState<boolean[]>(
         new Array(6).fill(false)
@@ -84,7 +84,7 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
     }, []);
 
     return (
-        <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background">
+        <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-6">
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-20">
                 <div
                     className="grid gap-1.5"
@@ -112,7 +112,7 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                 </div>
             </div>
 
-            <div className="relative z-10 flex w-full max-w-2xl flex-col items-center px-4">
+            <div className="relative z-10 flex max-w-2xl w-full flex-col items-center px-4">
                 <div className="mb-4 flex gap-1.5">
                     {LETTERS.map((letter, i) => (
                         <div
@@ -170,34 +170,35 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                 </p>
 
                 <div
-                    className="grid w-full grid-cols-3 gap-3 transition-all duration-700"
+                    className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 transition-all duration-700"
                     style={{
                         opacity: showContent ? 1 : 0,
                         transform: showContent ? "translateY(0)" : "translateY(24px)",
                     }}
                 >
                     <button
-                        className="group flex flex-col overflow-hidden rounded-2xl border border-[hsl(var(--tile-present))]/30 bg-card p-4 text-left transition-all duration-300 hover:border-[hsl(var(--tile-present))] hover:bg-card/95"
+                        className="group flex flex-row md:flex-col justify-between md:justify-start items-center md:items-center overflow-hidden rounded-2xl border border-[hsl(var(--tile-present))]/30 bg-card p-3 sm:p-4 text-left gap-2 md:gap-3 transition-all duration-300 hover:border-[hsl(var(--tile-present))] hover:bg-card/95"
                         onMouseEnter={() => setHoveredCard("daily")}
                         onMouseLeave={() => setHoveredCard(null)}
                         onClick={() => onDailyWord()}
                     >
-                        <div className="mb-3 flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--tile-present))]/20 transition-colors group-hover:bg-[hsl(var(--tile-present))]/30">
+                        <div className="flex items-center gap-2.5 min-w-0 md:w-full">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--tile-present))]/20 transition-colors group-hover:bg-[hsl(var(--tile-present))]/30 shrink-0">
                                 <CalendarDays size={18} className="text-[hsl(var(--tile-present))]" />
                             </div>
-                            <div className="min-w-0">
-                                <span className="block font-sans text-sm font-bold text-foreground">
+
+                            <div className="min-w-0 flex flex-col justify-center">
+                                <span className="block font-sans text-sm font-bold text-foreground truncate">
                                     Palabra del dia
                                 </span>
-                                <span className="text-[10px] leading-tight text-muted-foreground">
+                                <span className="text-[10px] leading-tight text-muted-foreground truncate">
                                     Descubre la palabra de hoy
                                 </span>
                             </div>
                         </div>
 
                         <div
-                            className="flex flex-col items-center gap-1 transition-all duration-300"
+                            className="flex flex-col items-center justify-center gap-1 max-w-[120px] md:max-w-none w-full md:w-auto transition-all duration-300"
                             style={{
                                 opacity: hoveredCard === "daily" ? 1 : 0.5,
                                 transform:
@@ -209,7 +210,7 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                                     {row.map((cell, ci) => (
                                         <div
                                             key={ci}
-                                            className="flex h-6 w-6 items-center justify-center rounded text-[9px] font-bold text-foreground"
+                                            className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded text-[9px] font-bold text-foreground"
                                             style={{
                                                 backgroundColor: STATE_COLORS[cell.state],
                                                 border:
@@ -227,20 +228,20 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                     </button>
 
                     <button
-                        className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 text-left transition-all duration-300 hover:border-muted-foreground hover:bg-card/95"
+                        className="group flex flex-row md:flex-col justify-between md:justify-start items-center md:items-center overflow-hidden rounded-2xl border border-[hsl(var(--tile-present))]/30 bg-card p-3 sm:p-4 text-left gap-2 md:gap-3 transition-all duration-300 hover:border-[hsl(var(--tile-present))] hover:bg-card/95"
                         onMouseEnter={() => setHoveredCard("solo")}
                         onMouseLeave={() => setHoveredCard(null)}
                         onClick={() => onSolitaire()}
                     >
-                        <div className="mb-3 flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-border transition-colors group-hover:bg-muted">
+                        <div className="flex items-center gap-2.5 min-w-0 md:w-full">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--tile-present))]/20 transition-colors group-hover:bg-[hsl(var(--tile-present))]/30 shrink-0">
                                 <User size={18} className="text-foreground" />
                             </div>
-                            <div className="min-w-0">
-                                <span className="block font-sans text-sm font-bold text-foreground">
+                            <div className="min-w-0 flex flex-col justify-center">
+                                <span className="block font-sans text-sm font-bold text-foreground truncate">
                                     Solitario
                                 </span>
-                                <span className="text-[10px] leading-tight text-muted-foreground">
+                                <span className="text-[10px] leading-tight text-muted-foreground truncate">
                                     Practica sin limite
                                 </span>
                             </div>
@@ -259,7 +260,7 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                                     {row.map((cell, ci) => (
                                         <div
                                             key={ci}
-                                            className="flex h-6 w-6 items-center justify-center rounded text-[9px] font-bold text-foreground"
+                                            className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded text-[9px] font-bold text-foreground"
                                             style={{
                                                 backgroundColor: STATE_COLORS[cell.state],
                                                 border:
@@ -277,20 +278,20 @@ export default function MainScreen({onDailyWord, onSolitaire, onMultiplayer, onT
                     </button>
 
                     <button
-                        className="group flex flex-col overflow-hidden rounded-2xl border border-[hsl(var(--tile-correct))]/30 bg-card p-4 text-left transition-all duration-300 hover:border-[hsl(var(--tile-correct))] hover:bg-card/95"
+                        className="group flex flex-row md:flex-col justify-between md:justify-start items-center md:items-center overflow-hidden rounded-2xl border border-[hsl(var(--tile-present))]/30 bg-card p-3 sm:p-4 text-left gap-2 md:gap-3 transition-all duration-300 hover:border-[hsl(var(--tile-present))] hover:bg-card/95"
                         onMouseEnter={() => setHoveredCard("multi")}
                         onMouseLeave={() => setHoveredCard(null)}
                         onClick={() => onMultiplayer()}
                     >
-                        <div className="mb-3 flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--tile-correct))]/20 transition-colors group-hover:bg-[hsl(var(--tile-correct))]/30">
+                        <div className="flex items-center gap-2.5 min-w-0 md:w-full">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--tile-present))]/20 transition-colors group-hover:bg-[hsl(var(--tile-present))]/30 shrink-0">
                                 <Users size={18} className="text-[hsl(var(--tile-correct))]" />
                             </div>
-                            <div className="min-w-0">
-                                <span className="block font-sans text-sm font-bold text-foreground">
+                            <div className="min-w-0 flex flex-col justify-center">
+                                <span className="block font-sans text-sm font-bold text-foreground truncate">
                                     Competitivo
                                 </span>
-                                <span className="text-[10px] leading-tight text-muted-foreground">
+                                <span className="text-[10px] leading-tight text-muted-foreground truncate">
                                     Desafia a alguien
                                 </span>
                             </div>
