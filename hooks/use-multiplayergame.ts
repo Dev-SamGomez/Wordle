@@ -23,28 +23,25 @@ export function useMultiplayer() {
 
     const [socket, setSocket] = useState<Socket | null>(null);
     const socketRef = useRef<Socket | null>(null);
-
     const [roomId, setRoomId] = useState<string | null>(null);
     const [status, setStatus] = useState<"waiting" | "queueing" | "countdown" | "playing" | "finished">("waiting");
     const [countdown, setCountdown] = useState(3);
     const [winner, setWinner] = useState<string | null>(null);
     const [myName, setMyName] = useState<string>("");
     const [opponentName, setOpponentName] = useState<string>("");
-
     const [score, setScore] = useState(0);
-
     const [rivalScore, setRivalScore] = useState(0);
     const [rivalWordIndex, setRivalWordIndex] = useState(0);
     const [rivalBoard, setRivalBoard] = useState<(LetterState | null)[][]>([]);
-
     const [roundResultsPlayer, setRoundResultsPlayer] = useState<("win" | "loss" | null)[]>([null, null, null]);
     const [roundResultsRival, setRoundResultsRival] = useState<("win" | "loss" | null)[]>([null, null, null]);
-
     const [rematchStatus, setRematchStatus] = useState<"idle" | "waiting" | "countdown" | "declined">("idle");
     const [mySocketId, setMySocketId] = useState<string | null>(null);
     const [winnerSocketId, setWinnerSocketId] = useState<string | "draw" | null>(null);
     const [profile, setProfile] = useState<CompetitiveProfile>(EMPTY_PROFILE);
     const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
+    const [drawStatus, setDrawStatus] = useState<"idle" | "offering" | "incoming" | "accepted" | "declined" | "expired">("idle");
+    const [drawOfferFrom, setDrawOfferFrom] = useState<{ id: string; name: string } | null>(null);
 
     const wordsRef = useRef<string[]>([]);
     const idxRef = useRef(0);
@@ -259,6 +256,28 @@ export function useMultiplayer() {
             setRoomId(code);
         });
 
+        s.on("draw_offer_ack", ({ ok, reason }: { ok: boolean; reason?: string }) => {
+            if (!ok) {
+                setDrawStatus("idle");
+                return;
+            }
+        });
+
+        s.on("draw_offer", ({ by, byName }: { by: string; byName: string }) => {
+            setDrawOfferFrom({ id: by, name: byName });
+            setDrawStatus("incoming");
+        });
+
+        s.on("draw_declined", ({ by, auto }: { by: string; auto?: boolean }) => {
+            setDrawStatus(auto ? "expired" : "declined");
+            setTimeout(() => setDrawStatus("idle"), 1000);
+        });
+
+        s.on("game_finished", (payload: GameFinishedPayload) => {
+            setDrawOfferFrom(null);
+            setDrawStatus("idle");
+        });
+
         return () => {
             s.off("connect");
             s.off("disconnect");
@@ -274,6 +293,9 @@ export function useMultiplayer() {
             s.off("queue_update");
             s.off("match_found");
             s.off("opponent_info");
+            s.off("draw_offer_ack");
+            s.off("draw_offer");
+            s.off("draw_declined");
             s.disconnect();
             socketRef.current = null;
         }
@@ -442,6 +464,24 @@ export function useMultiplayer() {
         setStatus("waiting");
     };
 
+    const surrender = () => {
+        if (!roomId) return;
+        socketRef.current?.emit("surrender", { code: roomId });
+    };
+
+    const offerDraw = () => {
+        if (!roomId || drawStatus !== "idle") return;
+        setDrawStatus("offering");
+        socketRef.current?.emit("draw_offer", { code: roomId });
+    };
+
+    const respondDraw = (accept: boolean) => {
+        if (!roomId || drawStatus !== "incoming") return;
+        socketRef.current?.emit("draw_response", { code: roomId, accept });
+        setDrawStatus(accept ? "accepted" : "declined");
+        setDrawOfferFrom(null);
+    };
+
     return {
         roomId,
         gameStatus: status,
@@ -486,5 +526,10 @@ export function useMultiplayer() {
             lastMatchDelta,
             history: profile.history,
         },
+        surrender,
+        offerDraw,
+        respondDraw,
+        drawStatus,
+        drawOfferFrom
     };
 }
