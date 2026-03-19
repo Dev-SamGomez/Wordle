@@ -186,7 +186,6 @@ function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
         createdAt: Date.now(),
     };
 
-    console.log("palabras codigo de sala", room.code)
     console.log("palabras competitivas", room.words)
     createRoom(room);
 
@@ -279,7 +278,6 @@ io.on("connection", (socket: Socket) => {
             words: getThreeRandomWords(),
             createdAt: Date.now(),
         };
-        console.log("palabras codigo de sala", room.code)
         console.log("palabras competitivas", room.words)
         createRoom(room);
         socket.join(id);
@@ -341,9 +339,6 @@ io.on("connection", (socket: Socket) => {
         if (!player) return;
 
         const current = player.currentWordIndex ?? 0;
-
-        console.log("[SERVER] row_resolved recv", socket.id, data);
-        console.log("[SERVER] player progress before", player.currentWordIndex);
 
         if (data.wordIndex !== current) {
             console.warn("Ignoring out-of-order/duplicate row_resolved", data, "expected", current);
