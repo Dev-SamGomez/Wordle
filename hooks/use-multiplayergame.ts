@@ -45,7 +45,7 @@ export function useMultiplayer() {
 
     const wordsRef = useRef<string[]>([]);
     const idxRef = useRef(0);
-
+    const profileRef = useRef<CompetitiveProfile>(EMPTY_PROFILE);
     const lastHandledKeyRef = useRef<string | null>(null);
     const subscribedRef = useRef(false);
     const processedRevealKeysRef = useRef<Set<string>>(new Set());
@@ -59,6 +59,16 @@ export function useMultiplayer() {
         const u = getCurrentUser();
         return u?.displayName ?? u?.email?.split("@")[0] ?? "Jugador";
     };
+
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (!user) return;
+
+        getCompetitiveProfile(user.uid).then(loaded => {
+            profileRef.current = loaded;
+            setProfile(loaded);
+        });
+    }, []);
 
     useEffect(() => {
         const user = getCurrentUser();
@@ -181,7 +191,7 @@ export function useMultiplayer() {
             setRoomId(payload.roomCode);
         });
 
-        s.on("game_finished", (data: GameFinishedPayload) => {
+        s.on("game_finished", async (data: GameFinishedPayload) => {
             if (finishAppliedRef.current) {
                 setStatus("finished");
                 setRematchStatus("idle");
@@ -190,6 +200,7 @@ export function useMultiplayer() {
             finishAppliedRef.current = true;
 
             const myId = socketRef.current?.id ?? null;
+            const user = getCurrentUser();
 
             let result: CompetitiveResult;
             if (!data.winnerSocketId || data.winnerSocketId === "draw") {
@@ -198,21 +209,23 @@ export function useMultiplayer() {
                 result = data.winnerSocketId === myId ? "win" : "lose";
             }
 
-            setProfile(prev => {
-                const updated = applyCompetitiveResult(prev, result, {
-                    roomCode: roomId,
-                    opponentId: data.scores?.find(s => s.socketId !== myId)?.socketId ?? null,
-                });
+            const freshProfile = user
+                ? await getCompetitiveProfile(user.uid)
+                : profileRef.current;
 
-                const user = getCurrentUser();
-                if (user) {
-                    saveCompetitiveProfileToFirestore(user.uid, updated);
-                    updateLeaderboardFromProfile(user.uid, updated);
-                }
-
-                setLastMatchDelta(updated.cups - prev.cups);
-                return updated;
+            const updated = applyCompetitiveResult(freshProfile, result, {
+                roomCode: roomId,
+                opponentId: data.scores?.find(s => s.socketId !== myId)?.socketId ?? null,
             });
+
+            profileRef.current = updated;
+            setProfile(updated);
+            setLastMatchDelta(updated.cups - freshProfile.cups);
+
+            if (user) {
+                await saveCompetitiveProfileToFirestore(user.uid, updated);
+                await updateLeaderboardFromProfile(user.uid, updated);
+            }
 
             setWinner(data.winnerName);
             setWinnerSocketId(data.winnerSocketId ?? null);
