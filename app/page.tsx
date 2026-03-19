@@ -267,18 +267,16 @@ export default function Home() {
                   >
                     Configuración
                   </button>
-                  {!showMultiplayer && (
-                    <button
-                      onClick={async () => {
-                        setShowUserMenu(false);
-                        await signOutUser();
-                      }}
-                      className="max-w-full m-auto flex items-center justify-center gap-2 rounded-xl bg-[#b91c1c] px-3 py-2 text-sm font-semibold text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Cerrar sesión
-                    </button>
-                  )}
+                  <button
+                    onClick={async () => {
+                      setShowUserMenu(false);
+                      await signOutUser();
+                    }}
+                    className="max-w-full m-auto flex items-center justify-center gap-2 rounded-xl bg-[#b91c1c] px-3 py-2 text-sm font-semibold text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Cerrar sesión
+                  </button>
                 </div>
               )}
             </div>
