@@ -19,8 +19,6 @@ import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/utils/competitive";
 import { usePresenceFirestore } from "@/hooks/use-presence";
 
-//TODO: poner una nueva key para animacion solo una vez al dia, para que al reload no este cargando siempre
-
 export default function Home() {
   const { user, authLoading } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
