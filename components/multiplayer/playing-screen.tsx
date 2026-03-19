@@ -7,6 +7,7 @@ import { RivalMiniBoard } from "./mini-board-rival";
 import { usePresenceFirestore } from "@/hooks/use-presence";
 import DrawModal from "./draw-modal";
 import { useEffect, useState } from "react";
+import SurrenderModal from "./surrender-modal";
 interface PlayingScreenProps {
     game: ReturnType<typeof useMultiplayer>;
 }
@@ -21,6 +22,12 @@ const PlayingScreen = ({ game }: PlayingScreenProps) => {
 
     const [isMobile, setIsMobile] = useState(false);
     const [boardScale, setBoardScale] = useState(1);
+    const [surrender, setSurrender] = useState<boolean>(false);
+
+    const handleSurrender = () => {
+        setSurrender(false)
+        game.surrender()
+    }
 
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
@@ -77,8 +84,8 @@ const PlayingScreen = ({ game }: PlayingScreenProps) => {
                         </button>
 
                         <button
-                            onClick={game.surrender}
-                            className="px-3 py-1 text-xs rounded-md bg-[hsl(var(--destructive))] text-white"
+                            onClick={() => setSurrender(true)}
+                            className="px-3 py-1 text-xs rounded-md bg-[hsl(var(--destructive))] text-foreground"
                         >
                             Rendirse
                         </button>
@@ -133,6 +140,13 @@ const PlayingScreen = ({ game }: PlayingScreenProps) => {
                         opponentName={game.drawOfferFrom?.name}
                     />
                 )}
+
+                {surrender && (
+                    <SurrenderModal
+                        handleAcceptSurrender={() => handleSurrender()}
+                        handleRejectSurrender={() => setSurrender(false)}
+                    />
+                )}
             </div>
         );
     }
@@ -167,9 +181,9 @@ const PlayingScreen = ({ game }: PlayingScreenProps) => {
                     Empate
                 </button>
                 <button
-                    onClick={game.surrender}
+                    onClick={() => setSurrender(true)}
                     disabled={game.gameStatus !== "playing"}
-                    className="px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(var(--destructive))] text-white hover:opacity-90 disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(var(--destructive))] text-foreground hover:opacity-90 disabled:opacity-50"
                 >
                     Rendirse
                 </button>
@@ -245,6 +259,13 @@ const PlayingScreen = ({ game }: PlayingScreenProps) => {
                     handleAcceptDraw={() => game.respondDraw(true)}
                     handleRejectDraw={() => game.respondDraw(false)}
                     opponentName={game.drawOfferFrom?.name}
+                />
+            )}
+
+            {surrender && (
+                <SurrenderModal
+                    handleAcceptSurrender={() => handleSurrender()}
+                    handleRejectSurrender={() => setSurrender(false)}
                 />
             )}
         </div>
