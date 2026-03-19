@@ -62,8 +62,6 @@ const TrendIcon = (t: "up" | "down" | "flat") =>
         <Minus className="w-4 h-4 text-slate-500" />
     );
 
-//TODO: trabajar en presence, hacer hook para presence
-
 export default function FriendsPanel({ game }: Props) {
     const { user } = useAuth();
     const presence = usePresenceFirestore();
