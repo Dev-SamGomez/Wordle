@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/utils/competitive";
 import { usePresenceFirestore } from "@/hooks/use-presence";
+import { EdgeSwipeZone } from "@/components/wordle/EdgeSwipeZone";
 
 export default function Home() {
   const { user, authLoading } = useAuth();
@@ -151,6 +152,11 @@ export default function Home() {
       >
         <Menu className="w-6 h-6" />
       </button>
+
+      <EdgeSwipeZone
+        enabled={!openSidebar}
+        onTrigger={() => setOpenSidebar(true)}
+      />
 
       {!showMainScreen && (
         <>
