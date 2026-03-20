@@ -6,6 +6,7 @@ import { getThreeRandomWords } from "./wordService";
 import { createRoom, deleteRoom, getRoomByCode, roomsByCode, roomsById } from "./rooms";
 import { PlayerState, Room } from "./gameEngine";
 import dotenv from "dotenv";
+import { generateRoomCode, matchmakingQueue, QueueEntry, removeFromQueue, takeOpponentFIFO } from "./matchmaking";
 dotenv.config();
 
 const app = express();
@@ -22,41 +23,7 @@ const io = new Server(server, {
     },
 });
 
-type QueueEntry = {
-    socketId: string;
-    name: string;
-    enqueuedAt: number;
-};
 
-const matchmakingQueue: QueueEntry[] = [];
-
-function removeFromQueue(socketId: string) {
-    const idx = matchmakingQueue.findIndex(e => e.socketId === socketId);
-    if (idx !== -1) matchmakingQueue.splice(idx, 1);
-}
-
-function takeOpponentFIFO(excludeId: string): QueueEntry | null {
-    for (let i = 0; i < matchmakingQueue.length; i++) {
-        if (matchmakingQueue[i].socketId !== excludeId) {
-            const [opponent] = matchmakingQueue.splice(i, 1);
-            return opponent;
-        }
-    }
-    return null;
-}
-
-function generateRoomCode(existingCodes: Set<string>): string {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code = "";
-
-    do {
-        code = Array.from({ length: 6 })
-            .map(() => chars[Math.floor(Math.random() * chars.length)])
-            .join("");
-    } while (existingCodes.has(code));
-
-    return code;
-}
 
 function scheduleCleanup(room: Room, ms = 60_000) {
     if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
