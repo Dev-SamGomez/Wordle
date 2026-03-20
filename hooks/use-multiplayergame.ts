@@ -17,6 +17,7 @@ const EMPTY_PROFILE: CompetitiveProfile = {
 };
 
 const MAX_GUESSES = 6;
+const MAX_DRAWS_PER_MATCH = 2;
 
 export function useMultiplayer() {
     const game = useGame();
@@ -42,6 +43,7 @@ export function useMultiplayer() {
     const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
     const [drawStatus, setDrawStatus] = useState<"idle" | "offering" | "incoming" | "accepted" | "declined" | "expired">("idle");
     const [drawOfferFrom, setDrawOfferFrom] = useState<{ id: string; name: string } | null>(null);
+    const [drawOffersCount, setDrawOffersCount] = useState(0);
 
     const wordsRef = useRef<string[]>([]);
     const idxRef = useRef(0);
@@ -54,6 +56,7 @@ export function useMultiplayer() {
 
     const pendingRoomResolveRef = useRef<((code: string) => void) | null>(null);
     const pendingRoomRejectRef = useRef<((err: any) => void) | null>(null);
+    const canOfferDraw = drawOffersCount < MAX_DRAWS_PER_MATCH && drawStatus === "idle";
 
     const getDefaultName = () => {
         const u = getCurrentUser();
@@ -263,6 +266,7 @@ export function useMultiplayer() {
                 setDrawStatus("idle");
                 return;
             }
+            setDrawOffersCount((n) => n + 1);
         });
 
         s.on("draw_offer", ({ by, byName }: { by: string; byName: string }) => {
@@ -473,6 +477,7 @@ export function useMultiplayer() {
 
     const offerDraw = () => {
         if (!roomId || drawStatus !== "idle") return;
+        if (drawOffersCount >= MAX_DRAWS_PER_MATCH) return;
         setDrawStatus("offering");
         socketRef.current?.emit("draw_offer", { code: roomId });
     };
@@ -532,6 +537,8 @@ export function useMultiplayer() {
         offerDraw,
         respondDraw,
         drawStatus,
-        drawOfferFrom
+        drawOfferFrom,
+        drawOffersCount,
+        canOfferDraw
     };
 }

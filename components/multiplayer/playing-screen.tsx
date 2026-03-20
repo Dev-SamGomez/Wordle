@@ -78,7 +78,9 @@ const PlayingScreen = ({ game }: PlayingScreenProps) => {
                     <div className="flex gap-2">
                         <button
                             onClick={game.offerDraw}
-                            className="px-3 py-1 text-xs rounded-md bg-muted"
+                            disabled={!game.canOfferDraw || game.gameStatus !== "playing"}
+                            className="px-3 py-1.5 text-xs rounded-md bg-[hsl(var(--muted))] text-foreground hover:opacity-50"
+                            title={!game.canOfferDraw ? "Límite de 2 intentos de empate por partida alcanzado" : "Proponer empate"}
                         >
                             Empate
                         </button>
@@ -175,8 +177,9 @@ const PlayingScreen = ({ game }: PlayingScreenProps) => {
             <div className="mt-3 flex items-center justify-center gap-2">
                 <button
                     onClick={game.offerDraw}
-                    disabled={game.gameStatus !== "playing" || !(game.drawStatus === "idle")}
-                    className="px-3 py-1.5 rounded-md text-xs font-semibold bg-muted text-foreground hover:bg-muted/80 disabled:opacity-50"
+                    disabled={!game.canOfferDraw || game.gameStatus !== "playing"}
+                    className="px-3 py-1.5 text-xs rounded-md bg-[hsl(var(--muted))] text-foreground hover:opacity-50"
+                    title={!game.canOfferDraw ? "Límite de 2 intentos de empate por partida alcanzado" : "Proponer empate"}
                 >
                     Empate
                 </button>
