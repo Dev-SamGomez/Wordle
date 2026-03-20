@@ -19,10 +19,10 @@ interface MainScreenProps {
 export default function MainScreen({ onDailyWord, onSolitaire, onMultiplayer, onTutorial }: MainScreenProps) {
     const [revealedCount, setRevealedCount] = useState(0);
     const [flippedLetters, setFlippedLetters] = useState<boolean[]>(
-        new Array(6).fill(false)
+        () => new Array(LETTERS.length).fill(false)
     );
     const [showContent, setShowContent] = useState(false);
-
+    const [shouldAnimate, setShouldAnimate] = useState(true);
     const [litCells, setLitCells] = useState<
         Map<string, { color: string; opacity: number }>
     >(new Map());
@@ -59,6 +59,8 @@ export default function MainScreen({ onDailyWord, onSolitaire, onMultiplayer, on
     }, [lightRandomCell]);
 
     useEffect(() => {
+        if (!shouldAnimate) return;
+
         const timers: NodeJS.Timeout[] = [];
 
         LETTERS.forEach((_, i) => {
@@ -74,13 +76,32 @@ export default function MainScreen({ onDailyWord, onSolitaire, onMultiplayer, on
             );
         });
 
+        const totalLetters = LETTERS.length;
+        const totalMs = 500 + totalLetters * 450 + 400;
+
         timers.push(
             setTimeout(() => {
                 setShowContent(true);
-            }, 500 + 6 * 450 + 400)
+                try {
+                    sessionStorage.setItem('intro_played', '1');
+                } catch (_) { }
+            }, totalMs)
         );
 
         return () => timers.forEach(clearTimeout);
+    }, [shouldAnimate, LETTERS.length]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const alreadyPlayed = sessionStorage.getItem('intro_played') === '1';
+        setShouldAnimate(!alreadyPlayed);
+
+        if (alreadyPlayed) {
+            setFlippedLetters(new Array(6).fill(true));
+            setRevealedCount(LETTERS.length);
+            setShowContent(true);
+        }
     }, []);
 
     return (
