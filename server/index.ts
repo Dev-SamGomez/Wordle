@@ -181,10 +181,15 @@ function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
     const room: Room = {
         id,
         code,
+        mode: "1v1",
         status: "countdown",
         players: [p1, p2],
         words: getThreeRandomWords(),
         createdAt: Date.now(),
+        cleanupTimer: null,
+        pendingDrawBy: null,
+        drawTimeout: null,
+        drawOffersCountByPlayer: {},
     };
 
     console.log("palabras competitivas", room.words)
@@ -286,10 +291,15 @@ io.on("connection", (socket: Socket) => {
         const room: Room = {
             id,
             code,
+            mode: "1v1",
             status: "waiting",
             players: [host],
             words: getThreeRandomWords(),
             createdAt: Date.now(),
+            cleanupTimer: null,
+            pendingDrawBy: null,
+            drawTimeout: null,
+            drawOffersCountByPlayer: {},
         };
         console.log("palabras competitivas", room.words)
         createRoom(room);
@@ -423,11 +433,11 @@ io.on("connection", (socket: Socket) => {
         const room = getRoomByCode(code);
         if (!room || room.status !== "playing") return;
 
-        (room as any).drawOffersCountByPlayer ||= {} as Record<string, number>;
-        (room as any).pendingDrawBy ??= null;
-        (room as any).drawTimeout ??= null;
+        room.drawOffersCountByPlayer ||= {} as Record<string, number>;
+        room.pendingDrawBy ??= null;
+        room.drawTimeout ??= null;
 
-        if ((room as any).pendingDrawBy && (room as any).pendingDrawBy !== socket.id) {
+        if (room.pendingDrawBy && room.pendingDrawBy !== socket.id) {
             socket.emit("draw_offer_ack", { ok: false, reason: "pending_offer" });
             return;
         }
@@ -436,7 +446,7 @@ io.on("connection", (socket: Socket) => {
         const opponent = room.players.find(p => p.socketId !== socket.id);
         if (!me || !opponent) return;
 
-        const counts = (room as any).drawOffersCountByPlayer as Record<string, number>;
+        const counts = room.drawOffersCountByPlayer as Record<string, number>;
         const myCount = counts[socket.id] ?? 0;
         const MAX_DRAWS_PER_MATCH = 2;
 
@@ -447,7 +457,7 @@ io.on("connection", (socket: Socket) => {
 
         counts[socket.id] = myCount + 1;
 
-        (room as any).pendingDrawBy = socket.id;
+        room.pendingDrawBy = socket.id;
 
         socket.emit("draw_offer_ack", { ok: true });
         io.to(opponent.socketId).emit("draw_offer", {
@@ -455,10 +465,10 @@ io.on("connection", (socket: Socket) => {
             byName: me.name,
         });
 
-        (room as any).drawTimeout = setTimeout(() => {
-            if ((room as any).pendingDrawBy) {
+        room.drawTimeout = setTimeout(() => {
+            if (room.pendingDrawBy) {
                 io.to(room.id).emit("draw_declined", { by: opponent.socketId, auto: true });
-                (room as any).pendingDrawBy = null;
+                room.pendingDrawBy = null;
             }
         }, 20000);
     });
@@ -467,17 +477,17 @@ io.on("connection", (socket: Socket) => {
         const room = getRoomByCode(code);
         if (!room || room.status !== "playing") return;
 
-        const requesterId = (room as any).pendingDrawBy;
+        const requesterId = room.pendingDrawBy;
         if (!requesterId) return;
 
-        if ((room as any).drawTimeout) {
-            clearTimeout((room as any).drawTimeout);
-            (room as any).drawTimeout = null;
+        if (room.drawTimeout) {
+            clearTimeout(room.drawTimeout);
+            room.drawTimeout = null;
         }
 
         if (!accept) {
             io.to(room.id).emit("draw_declined", { by: socket.id, auto: false });
-            (room as any).pendingDrawBy = null;
+            room.pendingDrawBy = null;
             return;
         }
 
@@ -487,7 +497,7 @@ io.on("connection", (socket: Socket) => {
             winnerName: "Empate",
             reason: "draw",
         });
-        (room as any).pendingDrawBy = null;
+        room.pendingDrawBy = null;
         scheduleCleanup(room);
     });
 

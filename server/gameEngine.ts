@@ -13,10 +13,14 @@ export interface PlayerState {
 export interface Room {
     id: string;
     code: string;
+    mode: "1v1" | "battle_royale";
     status: RoomStatus;
     players: PlayerState[];
     words: string[];
     createdAt: number;
     rematchRequests?: Set<string>;
-    cleanupTimer?: NodeJS.Timeout | null;
+    cleanupTimer: ReturnType<typeof setTimeout> | null;
+    pendingDrawBy: string | null;
+    drawTimeout: ReturnType<typeof setTimeout> | null;
+    drawOffersCountByPlayer: Record<string, number>;
 }
