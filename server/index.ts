@@ -138,6 +138,7 @@ function startRematch(io: Server, room: Room) {
     room.rematchRequests?.clear();
 
     emitOpponentInfo(io, room);
+    resetPerMatchState(room);
 
     io.to(room.id).emit("room_ready");
     console.log("palabras competitivas", room.words)
@@ -212,6 +213,7 @@ function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
 
     emitOpponentInfo(io, room);
 
+    resetPerMatchState(room);
     io.to(room.id).emit("room_ready");
 
     let counter = 3;
@@ -251,6 +253,17 @@ function emitOpponentInfo(io: Server, room: Room) {
             roomCode: room.code,
         });
     }
+}
+
+function resetPerMatchState(room: any) {
+    room.pendingDrawBy = null;
+
+    if (room.drawTimeout) {
+        clearTimeout(room.drawTimeout);
+        room.drawTimeout = null;
+    }
+
+    room.drawOffersCountByPlayer = {};
 }
 
 io.on("connection", (socket: Socket) => {
@@ -308,6 +321,7 @@ io.on("connection", (socket: Socket) => {
         room.status = "countdown";
 
         emitOpponentInfo(io, room);
+        resetPerMatchState(room);
 
         io.to(room.id).emit("room_ready");
 
@@ -409,6 +423,10 @@ io.on("connection", (socket: Socket) => {
         const room = getRoomByCode(code);
         if (!room || room.status !== "playing") return;
 
+        (room as any).drawOffersCountByPlayer ||= {} as Record<string, number>;
+        (room as any).pendingDrawBy ??= null;
+        (room as any).drawTimeout ??= null;
+
         if ((room as any).pendingDrawBy && (room as any).pendingDrawBy !== socket.id) {
             socket.emit("draw_offer_ack", { ok: false, reason: "pending_offer" });
             return;
@@ -417,6 +435,17 @@ io.on("connection", (socket: Socket) => {
         const me = room.players.find(p => p.socketId === socket.id);
         const opponent = room.players.find(p => p.socketId !== socket.id);
         if (!me || !opponent) return;
+
+        const counts = (room as any).drawOffersCountByPlayer as Record<string, number>;
+        const myCount = counts[socket.id] ?? 0;
+        const MAX_DRAWS_PER_MATCH = 2;
+
+        if (myCount >= MAX_DRAWS_PER_MATCH) {
+            socket.emit("draw_offer_ack", { ok: false, reason: "limit_reached" });
+            return;
+        }
+
+        counts[socket.id] = myCount + 1;
 
         (room as any).pendingDrawBy = socket.id;
 
