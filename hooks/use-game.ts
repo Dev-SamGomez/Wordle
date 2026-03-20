@@ -49,7 +49,6 @@ const getTodayKey = (): string => {
   const hoy = new Date();
   return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
 }
-
 interface DailyState {
   date: string;
   guesses: string[];
@@ -57,7 +56,9 @@ interface DailyState {
   keyboardColors: KeyboardColors;
   gameStatus: GameStatus;
 }
-
+interface SoloState extends DailyState {
+  solutionIndex: number;
+}
 export interface Streaks {
   dailyStreak: number;
   dailyLastWinDate: string;
@@ -82,7 +83,44 @@ const loadStreaks = (): Streaks => {
   }
 }
 
-const COMP_STORAGE_KEY = "wordle-competitive-profile-v1";
+const SOLO_STORAGE_KEY = "wordle-solo";
+const loadSoloState = (): SoloState | null => {
+  try {
+    const raw = localStorage.getItem(SOLO_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed: any = JSON.parse(raw);
+    if (typeof parsed.solutionIndex !== "number") {
+      const candidate = typeof parsed.solution === "string" ? parsed.solution.toUpperCase() : "";
+      const idx = uniqueWords.indexOf(candidate);
+      if (idx >= 0) {
+        const migrated: SoloState = {
+          date: parsed.date ?? getTodayKey(),
+          solutionIndex: idx,
+          guesses: parsed.guesses ?? [],
+          evaluations: parsed.evaluations ?? [],
+          keyboardColors: parsed.keyboardColors ?? {},
+          gameStatus: parsed.gameStatus ?? "playing",
+        };
+        localStorage.setItem(SOLO_STORAGE_KEY, JSON.stringify(migrated));
+        return migrated;
+      }
+      return null;
+    }
+    if (!Array.isArray(parsed.guesses) || !Array.isArray(parsed.evaluations)) return null;
+    return parsed as SoloState;
+  } catch {
+    return null;
+  }
+}
+
+const saveSoloState = (state: SoloState) => {
+  localStorage.setItem(SOLO_STORAGE_KEY, JSON.stringify(state));
+}
+
+const clearSoloState = () => {
+  localStorage.removeItem(SOLO_STORAGE_KEY);
+}
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -178,9 +216,26 @@ export function useGame() {
   const [competitiveCups, setCompetitiveCups] = useState<number>(0);
 
   const [state, setState] = useState<GameState>(() => {
+    const savedSolo = typeof window !== "undefined" ? loadSoloState() : null;
+    if (savedSolo) {
+      const word = uniqueWords[savedSolo.solutionIndex];
+      return {
+        solution: word,
+        guesses: savedSolo.guesses,
+        evaluations: savedSolo.evaluations,
+        currentGuess: "",
+        currentRow: savedSolo.guesses.length,
+        gameStatus: savedSolo.gameStatus,
+        toastMessage: "",
+        keyboardColors: savedSolo.keyboardColors ?? {},
+        revealingRow: null,
+        gameMode: "solitaire",
+        streaks: { ...DEFAULT_STREAKS },
+      };
+    }
     const word = getRandomWord(usedWordsRef.current);
     usedWordsRef.current.add(word);
-    return {
+    const baseline: GameState = {
       solution: word,
       guesses: [],
       evaluations: [],
@@ -193,6 +248,18 @@ export function useGame() {
       gameMode: "solitaire",
       streaks: { ...DEFAULT_STREAKS },
     };
+    if (typeof window !== "undefined") {
+      const solutionIndex = uniqueWords.indexOf(word);
+      saveSoloState({
+        date: getTodayKey(),
+        solutionIndex,
+        guesses: [],
+        evaluations: [],
+        keyboardColors: {},
+        gameStatus: "playing",
+      });
+    }
+    return baseline;
   });
 
   const { user, authLoading } = useAuth();
@@ -295,17 +362,28 @@ export function useGame() {
             evaluation
           );
 
-          if (prev.gameMode === "daily") {
-            const isWin = evaluation.every((s) => s === "correct");
-            const isLoss = !isWin && newGuesses.length >= 6;
-            const newStatus: GameStatus = isWin
-              ? "won"
-              : isLoss
-                ? "lost"
-                : "playing";
+          const isWin = evaluation.every((s) => s === "correct");
+          const isLoss = !isWin && newGuesses.length >= 6;
+          const newStatus: GameStatus = isWin
+            ? "won"
+            : isLoss
+              ? "lost"
+              : "playing";
 
+          if (prev.gameMode === "daily") {
             saveDailyState({
               date: getTodayKey(),
+              guesses: newGuesses,
+              evaluations: newEvaluations,
+              keyboardColors: newKeyboardColors,
+              gameStatus: newStatus,
+            });
+          }
+          else if (prev.gameMode === "solitaire") {
+            const solutionIndex = uniqueWords.indexOf(prev.solution);
+            saveSoloState({
+              date: getTodayKey(),
+              solutionIndex,
               guesses: newGuesses,
               evaluations: newEvaluations,
               keyboardColors: newKeyboardColors,
@@ -326,18 +404,65 @@ export function useGame() {
         }
 
         if (key === "BACKSPACE") {
-          return {
+
+          const next = {
             ...prev,
             currentGuess: prev.currentGuess.slice(0, -1),
           };
+
+          if (prev.gameMode === "solitaire") {
+            const solutionIndex = uniqueWords.indexOf(prev.solution);
+            saveSoloState({
+              date: getTodayKey(),
+              solutionIndex,
+              guesses: next.guesses,
+              evaluations: next.evaluations,
+              keyboardColors: next.keyboardColors,
+              gameStatus: next.gameStatus,
+            });
+          }
+          if (prev.gameMode === "daily") {
+            saveDailyState({
+              date: getTodayKey(),
+              guesses: next.guesses,
+              evaluations: next.evaluations,
+              keyboardColors: next.keyboardColors,
+              gameStatus: next.gameStatus,
+            });
+          }
+
+          return next;
         }
 
         if (prev.currentGuess.length >= 5) return prev;
         if (/^[A-ZÑ]$/.test(key)) {
-          return {
+
+          const next = {
             ...prev,
             currentGuess: prev.currentGuess + key,
           };
+
+          if (prev.gameMode === "solitaire") {
+            const solutionIndex = uniqueWords.indexOf(prev.solution);
+            saveSoloState({
+              date: getTodayKey(),
+              solutionIndex,
+              guesses: next.guesses,
+              evaluations: next.evaluations,
+              keyboardColors: next.keyboardColors,
+              gameStatus: next.gameStatus,
+            });
+          }
+          if (prev.gameMode === "daily") {
+            saveDailyState({
+              date: getTodayKey(),
+              guesses: next.guesses,
+              evaluations: next.evaluations,
+              keyboardColors: next.keyboardColors,
+              gameStatus: next.gameStatus,
+            });
+          }
+          return next;
         }
 
         return prev;
@@ -438,10 +563,12 @@ export function useGame() {
   }, []);
 
   const resetGame = useCallback(() => {
+    clearSoloState();
     const word = getRandomWord(usedWordsRef.current);
     usedWordsRef.current.add(word);
     streakCountedRef.current = false;
     const currentStreaks = loadStreaks();
+
     setState({
       solution: word,
       guesses: [],
@@ -454,6 +581,63 @@ export function useGame() {
       revealingRow: null,
       gameMode: "solitaire",
       streaks: currentStreaks,
+    });
+
+    const solutionIndex = uniqueWords.indexOf(word);
+    saveSoloState({
+      date: getTodayKey(),
+      solutionIndex,
+      guesses: [],
+      evaluations: [],
+      keyboardColors: {},
+      gameStatus: "playing",
+    });
+  }, []);
+
+  const startSolitaire = useCallback(() => {
+    const currentStreaks = loadStreaks();
+    const saved = loadSoloState();
+    if (saved) {
+      setState({
+        solution: uniqueWords[saved.solutionIndex],
+        guesses: saved.guesses,
+        evaluations: saved.evaluations,
+        currentGuess: "",
+        currentRow: saved.guesses.length,
+        gameStatus: saved.gameStatus,
+        toastMessage: "",
+        keyboardColors: saved.keyboardColors ?? {},
+        revealingRow: null,
+        gameMode: "solitaire",
+        streaks: currentStreaks,
+      });
+      return;
+    }
+    setState(() => {
+      const word = getRandomWord(usedWordsRef.current);
+      usedWordsRef.current.add(word);
+      const solutionIndex = uniqueWords.indexOf(word);
+      saveSoloState({
+        date: getTodayKey(),
+        solutionIndex,
+        guesses: [],
+        evaluations: [],
+        keyboardColors: {},
+        gameStatus: "playing",
+      });
+      return {
+        solution: word,
+        guesses: [],
+        evaluations: [],
+        currentGuess: "",
+        currentRow: 0,
+        gameStatus: "playing",
+        toastMessage: "",
+        keyboardColors: {},
+        revealingRow: null,
+        gameMode: "solitaire",
+        streaks: currentStreaks,
+      };
     });
   }, []);
 
@@ -574,6 +758,7 @@ export function useGame() {
     ...state,
     handleKeyPress,
     resetGame,
+    startSolitaire,
     startDailyGame,
     finishReveal,
     multiplayerMode,

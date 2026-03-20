@@ -50,13 +50,16 @@ export async function ensureNickname(nickname: string): Promise<void> {
     const user = auth.currentUser;
     if (!user) throw new Error("No hay usuario autenticado");
 
-    if (!user.displayName || user.displayName !== nickname) {
-        await updateProfile(user, { displayName: nickname });
+    const desired = nickname.trim();
+
+    if (!user.displayName || user.displayName !== desired) {
+        await updateProfile(user, { displayName: desired });
+        await user.reload();
     }
 
     await setDoc(
         doc(db, "profiles", user.uid),
-        { nickname, lastUpdated: serverTimestamp() },
+        { nickname: desired, lastUpdated: serverTimestamp() },
         { merge: true }
     );
 }

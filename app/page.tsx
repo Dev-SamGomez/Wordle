@@ -17,8 +17,8 @@ import { signOutUser } from "@/lib/auth-client";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/utils/competitive";
-
-//TODO: poner una nueva key para animacion solo una vez al dia, para que al reload no este cargando siempre
+import { usePresenceFirestore } from "@/hooks/use-presence";
+import { EdgeSwipeZone } from "@/components/wordle/EdgeSwipeZone";
 
 export default function Home() {
   const { user, authLoading } = useAuth();
@@ -36,6 +36,7 @@ export default function Home() {
 
   const game = useGame();
   const cups = game.getCompetitiveCups();
+  usePresenceFirestore({ heartbeatMs: 60_000, staleMs: 180_000, platform: "web" });
   const [showAuth, setShowAuth] = useState(false);
   const [lastCups, setLastCups] = useState(cups);
 
@@ -104,7 +105,7 @@ export default function Home() {
 
   const handleSolitarie = () => {
     if (showMainScreen) setShowMainScreen(prev => !prev)
-    game.resetGame()
+    game.startSolitaire()
     if (showMultiplayer) setShowMultiplayer(prev => !prev)
   }
 
@@ -139,16 +140,23 @@ export default function Home() {
   }
 
   return (
-    <main className="h-dvh bg-background flex flex-col items-center relative select-none overflow-hidden">
+    <main
+      className={"h-dvh bg-background flex flex-col items-center relative select-none"}
+    >
 
       <button
-        className="absolute py-2 sm:py-3 left-4 text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute z-50 py-2 sm:py-3 left-4 text-muted-foreground hover:text-foreground transition-colors"
         type="button"
         onClick={() => setOpenSidebar(true)}
         aria-label="Abrir menu"
       >
         <Menu className="w-6 h-6" />
       </button>
+
+      <EdgeSwipeZone
+        enabled={!openSidebar}
+        onTrigger={() => setOpenSidebar(true)}
+      />
 
       {!showMainScreen && (
         <>
@@ -263,18 +271,16 @@ export default function Home() {
                   >
                     Configuración
                   </button>
-                  {!showMultiplayer && (
-                    <button
-                      onClick={async () => {
-                        setShowUserMenu(false);
-                        await signOutUser();
-                      }}
-                      className="max-w-full m-auto flex items-center justify-center gap-2 rounded-xl bg-[#b91c1c] px-3 py-2 text-sm font-semibold text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Cerrar sesión
-                    </button>
-                  )}
+                  <button
+                    onClick={async () => {
+                      setShowUserMenu(false);
+                      await signOutUser();
+                    }}
+                    className="max-w-full m-auto flex items-center justify-center gap-2 rounded-xl bg-[#b91c1c] px-3 py-2 text-sm font-semibold text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Cerrar sesión
+                  </button>
                 </div>
               )}
             </div>
@@ -325,7 +331,7 @@ export default function Home() {
               <MultiplayerHome />
             ) : (
               <>
-                <div className="flex flex-col p-10 items-center sm:gap-4 justify-center min-h-0">
+                <div className="flex flex-col items-center justify-center min-h-0 flex-1 px-4 py-2 gap-2">
                   <Board
                     guesses={game.guesses}
                     evaluations={game.evaluations}
@@ -339,7 +345,7 @@ export default function Home() {
                 {game.gameStatus !== "playing" && (
                   <div className="flex justify-center">
                     <button
-                      onClick={game.gameMode === "daily" ? game.resetGame : game.resetGame}
+                      onClick={game.gameMode === "daily" ? game.startDailyGame : game.resetGame}
                       className="px-6 py-3 bg-accent text-accent-foreground font-bold rounded hover:brightness-110 transition-colors text-sm"
                     >
                       {game.gameMode === "daily" ? "Jugar solitario" : "Jugar de nuevo"}

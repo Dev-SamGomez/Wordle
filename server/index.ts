@@ -138,6 +138,7 @@ function startRematch(io: Server, room: Room) {
     room.rematchRequests?.clear();
 
     emitOpponentInfo(io, room);
+    resetPerMatchState(room);
 
     io.to(room.id).emit("room_ready");
     console.log("palabras competitivas", room.words)
@@ -186,7 +187,6 @@ function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
         createdAt: Date.now(),
     };
 
-    console.log("palabras codigo de sala", room.code)
     console.log("palabras competitivas", room.words)
     createRoom(room);
 
@@ -213,6 +213,7 @@ function createMatchFromQueueEntries(io: Server, a: QueueEntry, b: QueueEntry) {
 
     emitOpponentInfo(io, room);
 
+    resetPerMatchState(room);
     io.to(room.id).emit("room_ready");
 
     let counter = 3;
@@ -254,6 +255,17 @@ function emitOpponentInfo(io: Server, room: Room) {
     }
 }
 
+function resetPerMatchState(room: any) {
+    room.pendingDrawBy = null;
+
+    if (room.drawTimeout) {
+        clearTimeout(room.drawTimeout);
+        room.drawTimeout = null;
+    }
+
+    room.drawOffersCountByPlayer = {};
+}
+
 io.on("connection", (socket: Socket) => {
     console.log("Connected:", socket.id);
 
@@ -279,7 +291,6 @@ io.on("connection", (socket: Socket) => {
             words: getThreeRandomWords(),
             createdAt: Date.now(),
         };
-        console.log("palabras codigo de sala", room.code)
         console.log("palabras competitivas", room.words)
         createRoom(room);
         socket.join(id);
@@ -310,6 +321,7 @@ io.on("connection", (socket: Socket) => {
         room.status = "countdown";
 
         emitOpponentInfo(io, room);
+        resetPerMatchState(room);
 
         io.to(room.id).emit("room_ready");
 
@@ -341,9 +353,6 @@ io.on("connection", (socket: Socket) => {
         if (!player) return;
 
         const current = player.currentWordIndex ?? 0;
-
-        console.log("[SERVER] row_resolved recv", socket.id, data);
-        console.log("[SERVER] player progress before", player.currentWordIndex);
 
         if (data.wordIndex !== current) {
             console.warn("Ignoring out-of-order/duplicate row_resolved", data, "expected", current);
@@ -408,6 +417,95 @@ io.on("connection", (socket: Socket) => {
             scheduleCleanup(room);
             deleteRoom(room.id);
         }
+    });
+
+    socket.on("draw_offer", ({ code }: { code: string }) => {
+        const room = getRoomByCode(code);
+        if (!room || room.status !== "playing") return;
+
+        (room as any).drawOffersCountByPlayer ||= {} as Record<string, number>;
+        (room as any).pendingDrawBy ??= null;
+        (room as any).drawTimeout ??= null;
+
+        if ((room as any).pendingDrawBy && (room as any).pendingDrawBy !== socket.id) {
+            socket.emit("draw_offer_ack", { ok: false, reason: "pending_offer" });
+            return;
+        }
+
+        const me = room.players.find(p => p.socketId === socket.id);
+        const opponent = room.players.find(p => p.socketId !== socket.id);
+        if (!me || !opponent) return;
+
+        const counts = (room as any).drawOffersCountByPlayer as Record<string, number>;
+        const myCount = counts[socket.id] ?? 0;
+        const MAX_DRAWS_PER_MATCH = 2;
+
+        if (myCount >= MAX_DRAWS_PER_MATCH) {
+            socket.emit("draw_offer_ack", { ok: false, reason: "limit_reached" });
+            return;
+        }
+
+        counts[socket.id] = myCount + 1;
+
+        (room as any).pendingDrawBy = socket.id;
+
+        socket.emit("draw_offer_ack", { ok: true });
+        io.to(opponent.socketId).emit("draw_offer", {
+            by: me.socketId,
+            byName: me.name,
+        });
+
+        (room as any).drawTimeout = setTimeout(() => {
+            if ((room as any).pendingDrawBy) {
+                io.to(room.id).emit("draw_declined", { by: opponent.socketId, auto: true });
+                (room as any).pendingDrawBy = null;
+            }
+        }, 20000);
+    });
+
+    socket.on("draw_response", ({ code, accept }: { code: string; accept: boolean }) => {
+        const room = getRoomByCode(code);
+        if (!room || room.status !== "playing") return;
+
+        const requesterId = (room as any).pendingDrawBy;
+        if (!requesterId) return;
+
+        if ((room as any).drawTimeout) {
+            clearTimeout((room as any).drawTimeout);
+            (room as any).drawTimeout = null;
+        }
+
+        if (!accept) {
+            io.to(room.id).emit("draw_declined", { by: socket.id, auto: false });
+            (room as any).pendingDrawBy = null;
+            return;
+        }
+
+        room.status = "finished";
+        io.to(room.id).emit("game_finished", {
+            winnerSocketId: "draw",
+            winnerName: "Empate",
+            reason: "draw",
+        });
+        (room as any).pendingDrawBy = null;
+        scheduleCleanup(room);
+    });
+
+    socket.on("surrender", ({ code }: { code: string }) => {
+        const room = getRoomByCode(code);
+        if (!room || room.status !== "playing") return;
+
+        const loser = room.players.find(p => p.socketId === socket.id);
+        const winner = room.players.find(p => p.socketId !== socket.id);
+        if (!loser || !winner) return;
+
+        room.status = "finished";
+        io.to(room.id).emit("game_finished", {
+            winnerSocketId: winner.socketId,
+            winnerName: winner.name,
+            reason: "surrender",
+        });
+        scheduleCleanup(room);
     });
 
     socket.on("disconnect", () => {

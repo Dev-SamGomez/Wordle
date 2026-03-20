@@ -16,6 +16,8 @@ import {
 import { acceptChallengeAndJoin, onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot, rejectChallenge, sendChallengeWithRoom } from "@/utils/challenges";
 import { useMultiplayer } from "@/hooks/use-multiplayergame";
 import CompetitiveRecord from "./HistoryCompetitive";
+import { PresenceState } from "@/data/presence-state";
+import { usePresenceFirestore } from "@/hooks/use-presence";
 
 type Props = { game: ReturnType<typeof useMultiplayer> };
 type FriendRow = {
@@ -25,7 +27,7 @@ type FriendRow = {
     cups: number;
     trend: "up" | "down" | "flat";
     photoURL?: string | null;
-    presence?: "online" | "offline" | "playing" | "busy";
+    presence?: PresenceState;
 };
 
 function chunk<T>(arr: T[], size = 10): T[][] {
@@ -60,10 +62,9 @@ const TrendIcon = (t: "up" | "down" | "flat") =>
         <Minus className="w-4 h-4 text-slate-500" />
     );
 
-//TODO: trabajar en presence, hacer hook para presence
-
 export default function FriendsPanel({ game }: Props) {
     const { user } = useAuth();
+    const presence = usePresenceFirestore();
     const deps = getFirebase();
     if (!deps) throw new Error("Firebase no disponible");
     const { db } = deps;
@@ -237,10 +238,17 @@ export default function FriendsPanel({ game }: Props) {
             const offPr = onSnapshot(qPr, (snap) => {
                 if (!aliveRef.current || !localAlive) return;
                 const presences: Record<string, any> = {};
+                const now = Date.now();
+                const STALE_MS = 180_000;
                 snap.forEach((d) => {
                     const data: any = d.data() ?? {};
-                    presences[d.id] = data.state ?? "offline";
+                    const lastSeenMs =
+                        typeof data.lastSeen?.toMillis === "function" ? data.lastSeen.toMillis() :
+                            typeof data.lastSeen === "number" ? data.lastSeen : 0;
+                    const isStale = !lastSeenMs || (now - lastSeenMs) > STALE_MS;
+                    presences[d.id] = isStale ? "offline" : (data.state ?? "offline");
                 });
+
                 setFriends((prev) => {
                     const copy = { ...prev };
                     for (const id of Object.keys(presences)) {
@@ -369,13 +377,17 @@ export default function FriendsPanel({ game }: Props) {
             return;
         }
         try {
+            presence.setBusy()
             const code = await sendChallengeWithRoom(uid, game.createRoomAndWaitCode);
             pushToast({ kind: "success", msg: `Desafío enviado (código: ${code})` });
         } catch (e: any) { pushToast({ kind: "error", msg: e?.message }); }
     }
 
     const handleAcceptChallenge = async (chId: string) => {
-        try { await acceptChallengeAndJoin(chId, game.joinRoom); } catch (e: any) { pushToast({ kind: "error", msg: e?.message }); }
+        try {
+            presence.setBusy()
+            await acceptChallengeAndJoin(chId, game.joinRoom);
+        } catch (e: any) { pushToast({ kind: "error", msg: e?.message }); }
     }
 
     const handleRejectChallenge = async (chId: string) => {

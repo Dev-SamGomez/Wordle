@@ -8,7 +8,7 @@ import { CompetitiveProfile, CompetitiveResult } from "@/data/competitive-res";
 import { RivalUpdate } from "@/data/rival-update-type";
 import { GameFinishedPayload } from "@/data/game-finished-payload-type";
 import { getCurrentUser } from "@/lib/auth-client";
-import { getCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/utils/competitive-firestore";
+import { getCompetitiveProfile, normalizeCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/utils/competitive-firestore";
 
 const EMPTY_PROFILE: CompetitiveProfile = {
     cups: 0, wins: 0, losses: 0, draws: 0, gamesPlayed: 0,
@@ -16,50 +16,62 @@ const EMPTY_PROFILE: CompetitiveProfile = {
     history: [],
 };
 
+const MAX_GUESSES = 6;
+const MAX_DRAWS_PER_MATCH = 2;
+
 export function useMultiplayer() {
     const game = useGame();
 
     const [socket, setSocket] = useState<Socket | null>(null);
     const socketRef = useRef<Socket | null>(null);
-
     const [roomId, setRoomId] = useState<string | null>(null);
     const [status, setStatus] = useState<"waiting" | "queueing" | "countdown" | "playing" | "finished">("waiting");
     const [countdown, setCountdown] = useState(3);
     const [winner, setWinner] = useState<string | null>(null);
     const [myName, setMyName] = useState<string>("");
     const [opponentName, setOpponentName] = useState<string>("");
-
     const [score, setScore] = useState(0);
-
     const [rivalScore, setRivalScore] = useState(0);
     const [rivalWordIndex, setRivalWordIndex] = useState(0);
     const [rivalBoard, setRivalBoard] = useState<(LetterState | null)[][]>([]);
-
     const [roundResultsPlayer, setRoundResultsPlayer] = useState<("win" | "loss" | null)[]>([null, null, null]);
     const [roundResultsRival, setRoundResultsRival] = useState<("win" | "loss" | null)[]>([null, null, null]);
-
     const [rematchStatus, setRematchStatus] = useState<"idle" | "waiting" | "countdown" | "declined">("idle");
     const [mySocketId, setMySocketId] = useState<string | null>(null);
     const [winnerSocketId, setWinnerSocketId] = useState<string | "draw" | null>(null);
+    const [profile, setProfile] = useState<CompetitiveProfile>(EMPTY_PROFILE);
+    const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
+    const [drawStatus, setDrawStatus] = useState<"idle" | "offering" | "incoming" | "accepted" | "declined" | "expired">("idle");
+    const [drawOfferFrom, setDrawOfferFrom] = useState<{ id: string; name: string } | null>(null);
+    const [drawOffersCount, setDrawOffersCount] = useState(0);
 
     const wordsRef = useRef<string[]>([]);
     const idxRef = useRef(0);
-
+    const profileRef = useRef<CompetitiveProfile>(EMPTY_PROFILE);
     const lastHandledKeyRef = useRef<string | null>(null);
     const subscribedRef = useRef(false);
     const processedRevealKeysRef = useRef<Set<string>>(new Set());
 
-    const [profile, setProfile] = useState<CompetitiveProfile>(EMPTY_PROFILE);
-    const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
     const finishAppliedRef = useRef(false);
 
     const pendingRoomResolveRef = useRef<((code: string) => void) | null>(null);
     const pendingRoomRejectRef = useRef<((err: any) => void) | null>(null);
+    const canOfferDraw = drawOffersCount < MAX_DRAWS_PER_MATCH && drawStatus === "idle";
 
     const getDefaultName = () => {
         const u = getCurrentUser();
         return u?.displayName ?? u?.email?.split("@")[0] ?? "Jugador";
     };
+
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (!user) return;
+
+        getCompetitiveProfile(user.uid).then(loaded => {
+            profileRef.current = loaded;
+            setProfile(loaded);
+        });
+    }, []);
 
     useEffect(() => {
         const user = getCurrentUser();
@@ -147,15 +159,15 @@ export function useMultiplayer() {
 
         s.on("rival_progress", (data: RivalUpdate) => {
             setRivalScore(data.solvedCount);
+            setRivalWordIndex(data.currentWordIndex);
 
-            setRivalWordIndex((prev) => {
-                if (data.currentWordIndex !== prev) {
-                    setRivalBoard([]);
+            setRivalBoard((prev) => {
+                const eval5 = (data.evaluation ?? []).slice(0, 5);
+                if (prev.length >= MAX_GUESSES) {
+                    return [...prev.slice(1), eval5];
                 }
-                return data.currentWordIndex;
+                return [...prev, eval5];
             });
-
-            setRivalBoard((prev) => [...prev, data.evaluation]);
 
             if (data.wordFinished && typeof data.wordIndex === "number") {
                 const idx = data.wordIndex;
@@ -165,6 +177,7 @@ export function useMultiplayer() {
                     next[idx] = solved ? "win" : "loss";
                     return next;
                 });
+                setTimeout(() => setRivalBoard([]), 1200);
             }
         });
 
@@ -181,7 +194,7 @@ export function useMultiplayer() {
             setRoomId(payload.roomCode);
         });
 
-        s.on("game_finished", (data: GameFinishedPayload) => {
+        s.on("game_finished", async (data: GameFinishedPayload) => {
             if (finishAppliedRef.current) {
                 setStatus("finished");
                 setRematchStatus("idle");
@@ -190,6 +203,7 @@ export function useMultiplayer() {
             finishAppliedRef.current = true;
 
             const myId = socketRef.current?.id ?? null;
+            const user = getCurrentUser();
 
             let result: CompetitiveResult;
             if (!data.winnerSocketId || data.winnerSocketId === "draw") {
@@ -198,21 +212,25 @@ export function useMultiplayer() {
                 result = data.winnerSocketId === myId ? "win" : "lose";
             }
 
-            setProfile(prev => {
-                const updated = applyCompetitiveResult(prev, result, {
-                    roomCode: roomId,
-                    opponentId: data.scores?.find(s => s.socketId !== myId)?.socketId ?? null,
-                });
+            const freshProfileRaw = user
+                ? await getCompetitiveProfile(user.uid)
+                : profileRef.current;
 
-                const user = getCurrentUser();
-                if (user) {
-                    saveCompetitiveProfileToFirestore(user.uid, updated);
-                    updateLeaderboardFromProfile(user.uid, updated);
-                }
+            const freshProfile = normalizeCompetitiveProfile(freshProfileRaw ?? EMPTY_PROFILE);
 
-                setLastMatchDelta(updated.cups - prev.cups);
-                return updated;
+            const updated = applyCompetitiveResult(freshProfile, result, {
+                roomCode: roomId,
+                opponentId: data.scores?.find(s => s.socketId !== myId)?.socketId ?? null,
             });
+
+            profileRef.current = updated;
+            setProfile(updated);
+            setLastMatchDelta(updated.cups - freshProfile.cups);
+
+            if (user) {
+                await saveCompetitiveProfileToFirestore(user.uid, updated);
+                await updateLeaderboardFromProfile(user.uid, updated);
+            }
 
             setWinner(data.winnerName);
             setWinnerSocketId(data.winnerSocketId ?? null);
@@ -243,6 +261,29 @@ export function useMultiplayer() {
             setRoomId(code);
         });
 
+        s.on("draw_offer_ack", ({ ok, reason }: { ok: boolean; reason?: string }) => {
+            if (!ok) {
+                setDrawStatus("idle");
+                return;
+            }
+            setDrawOffersCount((n) => n + 1);
+        });
+
+        s.on("draw_offer", ({ by, byName }: { by: string; byName: string }) => {
+            setDrawOfferFrom({ id: by, name: byName });
+            setDrawStatus("incoming");
+        });
+
+        s.on("draw_declined", ({ by, auto }: { by: string; auto?: boolean }) => {
+            setDrawStatus(auto ? "expired" : "declined");
+            setTimeout(() => setDrawStatus("idle"), 1000);
+        });
+
+        s.on("game_finished", (payload: GameFinishedPayload) => {
+            setDrawOfferFrom(null);
+            setDrawStatus("idle");
+        });
+
         return () => {
             s.off("connect");
             s.off("disconnect");
@@ -258,6 +299,9 @@ export function useMultiplayer() {
             s.off("queue_update");
             s.off("match_found");
             s.off("opponent_info");
+            s.off("draw_offer_ack");
+            s.off("draw_offer");
+            s.off("draw_declined");
             s.disconnect();
             socketRef.current = null;
         }
@@ -307,7 +351,7 @@ export function useMultiplayer() {
 
                 const sol = solution?.toUpperCase?.() ?? solution;
                 const dedupeKey = `${sol}:${rowIndex}`;
-                if (!wordFinished) return;
+
                 if (processedRevealKeysRef.current.has(dedupeKey)) return;
                 processedRevealKeysRef.current.add(dedupeKey);
 
@@ -321,8 +365,10 @@ export function useMultiplayer() {
                     wordIndex: wIdxFromSolution,
                     wasSolved,
                     lastEval: evaluation,
-                    wordFinished: true,
+                    wordFinished,
                 });
+
+                if (!wordFinished) return;
 
                 setRoundResultsPlayer((prev) => {
                     const next = [...prev];
@@ -424,6 +470,25 @@ export function useMultiplayer() {
         setStatus("waiting");
     };
 
+    const surrender = () => {
+        if (!roomId) return;
+        socketRef.current?.emit("surrender", { code: roomId });
+    };
+
+    const offerDraw = () => {
+        if (!roomId || drawStatus !== "idle") return;
+        if (drawOffersCount >= MAX_DRAWS_PER_MATCH) return;
+        setDrawStatus("offering");
+        socketRef.current?.emit("draw_offer", { code: roomId });
+    };
+
+    const respondDraw = (accept: boolean) => {
+        if (!roomId || drawStatus !== "incoming") return;
+        socketRef.current?.emit("draw_response", { code: roomId, accept });
+        setDrawStatus(accept ? "accepted" : "declined");
+        setDrawOfferFrom(null);
+    };
+
     return {
         roomId,
         gameStatus: status,
@@ -468,5 +533,12 @@ export function useMultiplayer() {
             lastMatchDelta,
             history: profile.history,
         },
+        surrender,
+        offerDraw,
+        respondDraw,
+        drawStatus,
+        drawOfferFrom,
+        drawOffersCount,
+        canOfferDraw
     };
 }
