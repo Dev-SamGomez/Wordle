@@ -3,7 +3,7 @@ import { Copy, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 
 interface WaitingScreenProps {
-    roomId: string, 
+    roomId: string,
     handleCancel: () => void
 }
 
@@ -46,11 +46,13 @@ const WaitingScreen = ({ roomId, handleCancel }: WaitingScreenProps) => {
                     )}
 
                     <div className="mt-6 flex flex-col items-center justify-center gap-2">
-                        <span className="relative flex h-2.5 w-2.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#538d4e] opacity-75" />
-                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#538d4e]" />
-                        </span>
-                        <span className="text-xs text-muted-foreground">Partida activa</span>
+                        <div className="flex flex-row items-center justify-center">
+                            <span className="relative flex h-2.5 w-2.5 mr-2">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#538d4e] opacity-75" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#538d4e]" />
+                            </span>
+                            <span className="text-xs text-muted-foreground">Partida activa</span>
+                        </div>
 
                         <button
                             onClick={handleCancel}
