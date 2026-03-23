@@ -53,7 +53,8 @@ export async function sendChallengeWithRoom(
     createRoomAndWaitCode: (name?: string) => Promise<string>,
     gameMode?: string
 ) {
-    const deps = getFirebase(); if (!deps) return [];
+    const deps = getFirebase();
+    if (!deps) throw new Error("Firebase no disponible");
     const { db } = deps;
     const uid = getAuth().currentUser?.uid;
     if (!db || !uid) throw new Error("No autenticado");
@@ -83,7 +84,7 @@ export async function sendChallengeWithRoom(
     const now = Timestamp.now();
     const expiresAt = Timestamp.fromMillis(now.toMillis() + CHALLENGE_TTL_MIN * 60 * 1000);
 
-    await addDoc(collection(db, CHALLENGE_COLL), {
+    const ref = await addDoc(collection(db, CHALLENGE_COLL), {
         fromUid: uid,
         toUid,
         status: "pending" as ChallengeStatus,
@@ -93,7 +94,7 @@ export async function sendChallengeWithRoom(
         expiresAt,
     });
 
-    return roomCode;
+    return { roomCode, challengeId: ref.id };
 }
 
 export async function acceptChallengeAndJoin(challengeId: string, joinRoom: (code: string, name?: string) => void) {
@@ -130,4 +131,30 @@ export async function rejectChallenge(challengeId: string) {
     if (ch.status !== "pending") return;
 
     await updateDoc(ref, { status: "rejected" as ChallengeStatus });
+}
+
+export async function cancelOutgoingChallenge(challengeId: string) {
+    const deps = getFirebase(); if (!deps) return;
+    const { db } = deps;
+
+    const uid = getAuth().currentUser?.uid;
+    if (!uid) throw new Error("No autenticado");
+
+    const ref = doc(db, "challenges", challengeId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+
+    const ch = snap.data() as any;
+
+    if (ch.fromUid !== uid) {
+        throw new Error("Solo el creador puede cancelar el desafío");
+    }
+    console.log("estatus", ch.status)
+    if (ch.status !== "pending") return;
+
+    await updateDoc(ref, {
+        status: "rejected",
+        closedAt: serverTimestamp(),
+        closeReason: "host_cancelled"
+    });
 }
