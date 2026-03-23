@@ -7,6 +7,9 @@ import { createRoom, deleteRoom, getRoomByCode, roomsByCode, roomsById } from ".
 import { PlayerState, Room } from "./gameEngine";
 import dotenv from "dotenv";
 import { generateRoomCode, matchmakingQueue, QueueEntry, removeFromQueue, takeOpponentFIFO } from "./matchmaking";
+import { addToBRQueue, hostForceLaunch, removeFromBRQueue } from "./brMatchmaking";
+import { BattleRoyaleRoom } from "./brTypes";
+import { handleBRRowResolved, handleSuddenDeathRowResolved } from "./brGameEngine";
 dotenv.config();
 
 const app = express();
@@ -485,6 +488,36 @@ io.on("connection", (socket: Socket) => {
         scheduleCleanup(room);
     });
 
+    socket.on("br_join_queue", (data: { name: string }) => {
+        addToBRQueue(io, socket.id, data.name);
+    });
+
+    socket.on("br_cancel_queue", () => {
+        removeFromBRQueue(io, socket.id);
+        socket.emit("queue_update", { status: "cancelled" });
+    });
+
+    socket.on("br_force_start", () => {
+        hostForceLaunch(io, socket.id);
+    });
+
+    socket.on("br_row_resolved", (data: {
+        roomId: string;
+        wordIndex: number;
+        wasSolved: boolean;
+        wordFinished: boolean;
+        lastEval: ("correct" | "present" | "absent")[];
+    }) => {
+        const room = roomsById.get(data.roomId) as BattleRoyaleRoom | undefined;
+        if (!room || room.mode !== "battle_royale") return;
+
+        if (room.status === "round_active") {
+            handleBRRowResolved(io, room, socket.id, data);
+        } else if (room.status === "sudden_death") {
+            handleSuddenDeathRowResolved(io, room, socket.id, data);
+        }
+    });
+
     socket.on("disconnect", () => {
         for (const [id, room] of roomsById.entries()) {
             const player = room.players.find(p => p.socketId === socket.id);
@@ -503,7 +536,7 @@ io.on("connection", (socket: Socket) => {
                 });
                 scheduleCleanup(room)
             }
-
+            removeFromBRQueue(io, socket.id);
             deleteRoom(id);
             break;
         }
