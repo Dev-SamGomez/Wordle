@@ -16,10 +16,10 @@ import {
 } from "@/utils/social";
 import { acceptChallengeAndJoin, onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot, rejectChallenge, sendChallengeWithRoom } from "@/utils/challenges";
 import { useMultiplayer } from "@/hooks/use-multiplayergame";
-import CompetitiveRecord from "./HistoryCompetitive";
+import CompetitiveRecord from "../HistoryCompetitive";
 import { usePresenceFirestore } from "@/hooks/use-presence";
 import { FriendRow } from "@/data/friend-row";
-import FriendCard from "./Friends/FriendCard";
+import FriendCard from "./FriendCard";
 
 type Props = { game: ReturnType<typeof useMultiplayer> };
 

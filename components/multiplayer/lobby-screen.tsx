@@ -2,7 +2,7 @@ import { useMultiplayer } from "@/hooks/use-multiplayergame";
 import { LogIn, Plus, Trophy, Users, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SiChessdotcom } from "react-icons/si";
-import FriendsPanel from "../wordle/FriendPanel";
+import FriendsPanel from "../wordle/Friends/FriendPanel";
 import { useAuth } from "@/hooks/use-auth";
 import { usePresenceFirestore } from "@/hooks/use-presence";
 
