@@ -7,6 +7,7 @@
     "build": "next build",
     "dev:all": "concurrently \"pnpm run dev\" \"pnpm run dev:socket\"",
     "dev:socket": "ts-node -P tsconfig.server.json server/index.ts",
+    "test:br": "ts-node -P tsconfig.server.json server/test/test-br.ts",
     "start": "next start",
     "lint": "next lint"
   },
