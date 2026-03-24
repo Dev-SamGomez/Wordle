@@ -1,21 +1,32 @@
 import { Room } from "./gameEngine";
+import { BattleRoyaleRoom } from "./brTypes";
 
-export const roomsById = new Map<string, Room>();
-export const roomsByCode = new Map<string, Room>();
+export type AnyRoom = Room | BattleRoyaleRoom;
 
-export function createRoom(room: Room) {
+export const roomsById = new Map<string, AnyRoom>();
+export const roomsByCode = new Map<string, AnyRoom>();
+
+export function createRoom(room: AnyRoom) {
     roomsById.set(room.id, room);
     roomsByCode.set(room.code, room);
 }
 
-export function getRoomByCode(code: string) {
+export function deleteRoom(id: string) {
+    const room = roomsById.get(id);
+    if (room) {
+        roomsByCode.delete(room.code);
+        roomsById.delete(id);
+    }
+}
+
+export function getRoomByCode(code: string): AnyRoom | undefined {
     return roomsByCode.get(code);
 }
 
-export function deleteRoom(id: string) {
-    const room = roomsById.get(id);
-    if (!room) return;
+export function is1v1Room(room: AnyRoom): room is Room {
+    return room.mode === "1v1";
+}
 
-    roomsById.delete(id);
-    roomsByCode.delete(room.code);
+export function isBRRoom(room: AnyRoom): room is BattleRoyaleRoom {
+    return room.mode === "battle_royale";
 }

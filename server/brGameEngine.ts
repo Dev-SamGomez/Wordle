@@ -232,6 +232,8 @@ export function handleSuddenDeathRowResolved(
 }
 
 function endBRMatch(io: Server, room: BattleRoyaleRoom, winner: BRPlayerState | null) {
+    const reachedSuddenDeath = room.status === "sudden_death";
+
     room.status = "finished";
     room.winner = winner?.socketId;
 
@@ -243,9 +245,14 @@ function endBRMatch(io: Server, room: BattleRoyaleRoom, winner: BRPlayerState | 
     const ordered = [...room.players].sort((a, b) => {
         if (!a.isEliminated && b.isEliminated) return -1;
         if (a.isEliminated && !b.isEliminated) return 1;
-        if (a.isEliminated && b.isEliminated) {
-            return (a.eliminatedAtRound ?? 0) > (b.eliminatedAtRound ?? 0) ? -1 : 1;
+
+        if (!a.isEliminated && !b.isEliminated) {
+            return b.wordsResolved - a.wordsResolved;
         }
+
+        const roundA = a.eliminatedAtRound ?? -1;
+        const roundB = b.eliminatedAtRound ?? -1;
+        if (roundB !== roundA) return roundB - roundA;
         return b.wordsResolved - a.wordsResolved;
     });
 
@@ -255,16 +262,16 @@ function endBRMatch(io: Server, room: BattleRoyaleRoom, winner: BRPlayerState | 
     for (const p of room.players) {
         const delta = p.abandoned ? -10 :
             p.finalPosition === 1 ? 50 :
-            p.finalPosition === 2 ? 20 :
-            p.finalPosition === 3 ? 10 :
-            p.finalPosition === 4 ? 5 : 0;
+                p.finalPosition === 2 ? 20 :
+                    p.finalPosition === 3 ? 10 :
+                        p.finalPosition === 4 ? 5 : 0;
         cupsMap[p.socketId] = delta;
     }
 
     io.to(room.id).emit("br_game_over", {
         winnerId: winner?.socketId ?? null,
         winnerName: winner?.name ?? null,
-        finalPositions: room.players.map(p => ({
+        finalPositions: ordered.map(p => ({
             socketId: p.socketId,
             name: p.name,
             position: p.finalPosition,
@@ -272,7 +279,7 @@ function endBRMatch(io: Server, room: BattleRoyaleRoom, winner: BRPlayerState | 
             cupsChange: cupsMap[p.socketId],
             abandoned: p.abandoned,
         })),
-        reachedSuddenDeath: room.status === "sudden_death",
+        reachedSuddenDeath,
     });
 
     room.cleanupTimer = setTimeout(() => {

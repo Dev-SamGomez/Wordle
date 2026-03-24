@@ -3,7 +3,7 @@ import http from "http";
 import { Server, Socket } from "socket.io";
 import { v4 as uuid } from "uuid";
 import { getThreeRandomWords } from "./wordService";
-import { createRoom, deleteRoom, getRoomByCode, roomsByCode, roomsById } from "./rooms";
+import { createRoom, deleteRoom, getRoomByCode, is1v1Room, isBRRoom, roomsByCode, roomsById } from "./rooms";
 import { PlayerState, Room } from "./gameEngine";
 import dotenv from "dotenv";
 import { generateRoomCode, matchmakingQueue, QueueEntry, removeFromQueue, takeOpponentFIFO } from "./matchmaking";
@@ -230,7 +230,7 @@ function emitOpponentInfo(io: Server, room: Room) {
     }
 }
 
-function resetPerMatchState(room: any) {
+function resetPerMatchState(room: Room) {
     room.pendingDrawBy = null;
 
     if (room.drawTimeout) {
@@ -279,7 +279,12 @@ io.on("connection", (socket: Socket) => {
     });
 
     socket.on("join_room", (data: { code: string; name: string }) => {
-        const room = getRoomByCode(data.code);
+        const anyRoom = getRoomByCode(data.code);
+        if (!anyRoom || !is1v1Room(anyRoom)) {
+            socket.emit("join_error", { message: "Sala inválida o llena" });
+            return;
+        }
+        const room = anyRoom;
 
         if (!room || room.players.length >= 2) {
             socket.emit("join_error", { message: "Sala inválida o llena" });
@@ -326,7 +331,9 @@ io.on("connection", (socket: Socket) => {
         wordFinished?: boolean;
         lastEval: ("correct" | "present" | "absent")[];
     }) => {
-        const room = getRoomByCode(data.code);
+        const anyRoom = getRoomByCode(data.code);
+        if (!anyRoom || !is1v1Room(anyRoom)) return;
+        const room = anyRoom;
         if (!room || room.status !== "playing") return;
 
         const player = room.players.find(p => p.socketId === socket.id);
@@ -376,7 +383,9 @@ io.on("connection", (socket: Socket) => {
     });
 
     socket.on("leave_room", ({ code }: { code: string }) => {
-        const room = getRoomByCode(code);
+        const anyRoom = getRoomByCode(code);
+        if (!anyRoom || !is1v1Room(anyRoom)) return;
+        const room = anyRoom;
         if (!room) return;
 
         const leaver = room.players.find(p => p.socketId === socket.id);
@@ -400,7 +409,9 @@ io.on("connection", (socket: Socket) => {
     });
 
     socket.on("draw_offer", ({ code }: { code: string }) => {
-        const room = getRoomByCode(code);
+        const anyRoom = getRoomByCode(code);
+        if (!anyRoom || !is1v1Room(anyRoom)) return;
+        const room = anyRoom;
         if (!room || room.status !== "playing") return;
 
         room.drawOffersCountByPlayer ||= {} as Record<string, number>;
@@ -444,7 +455,10 @@ io.on("connection", (socket: Socket) => {
     });
 
     socket.on("draw_response", ({ code, accept }: { code: string; accept: boolean }) => {
-        const room = getRoomByCode(code);
+        const anyRoom = getRoomByCode(code);
+        if (!anyRoom || !is1v1Room(anyRoom)) return;
+        const room = anyRoom;
+
         if (!room || room.status !== "playing") return;
 
         const requesterId = room.pendingDrawBy;
@@ -472,7 +486,9 @@ io.on("connection", (socket: Socket) => {
     });
 
     socket.on("surrender", ({ code }: { code: string }) => {
-        const room = getRoomByCode(code);
+        const anyRoom = getRoomByCode(code);
+        if (!anyRoom || !is1v1Room(anyRoom)) return;
+        const room = anyRoom;
         if (!room || room.status !== "playing") return;
 
         const loser = room.players.find(p => p.socketId === socket.id);
@@ -510,40 +526,46 @@ io.on("connection", (socket: Socket) => {
     }) => {
         const room = roomsById.get(data.roomId) as BattleRoyaleRoom | undefined;
         if (!room || room.mode !== "battle_royale") return;
-
-        if (room.status === "round_active") {
-            handleBRRowResolved(io, room, socket.id, data);
-        } else if (room.status === "sudden_death") {
-            handleSuddenDeathRowResolved(io, room, socket.id, data);
+        const brRoom = room as BattleRoyaleRoom;
+        if (brRoom.status === "round_active") {
+            handleBRRowResolved(io, brRoom, socket.id, data);
+        } else if (brRoom.status === "sudden_death") {
+            handleSuddenDeathRowResolved(io, brRoom, socket.id, data);
         }
     });
 
     socket.on("disconnect", () => {
-        for (const [id, room] of roomsById.entries()) {
-            const player = room.players.find(p => p.socketId === socket.id);
+        removeFromBRQueue(io, socket.id);
+
+        for (const [id, anyRoom] of roomsById.entries()) {
+            const player = anyRoom.players.find(p => p.socketId === socket.id);
             if (!player) continue;
 
-            const remaining = room.players.find(
-                p => p.socketId !== socket.id
-            );
-
-            if (remaining) {
-                room.status = "finished";
-                io.to(id).emit("game_finished", {
-                    winnerSocketId: remaining.socketId,
-                    winnerName: remaining.name,
-                    reason: "abandon",
-                });
-                scheduleCleanup(room)
+            if (is1v1Room(anyRoom)) {
+                const remaining = anyRoom.players.find(p => p.socketId !== socket.id);
+                if (remaining) {
+                    anyRoom.status = "finished";
+                    io.to(id).emit("game_finished", {
+                        winnerSocketId: remaining.socketId,
+                        winnerName: remaining.name,
+                        reason: "abandon",
+                    });
+                    scheduleCleanup(anyRoom);
+                }
+            } else if (isBRRoom(anyRoom)) {
+                const brPlayer = anyRoom.players.find(p => p.socketId === socket.id);
+                if (brPlayer) brPlayer.abandoned = true;
             }
-            removeFromBRQueue(io, socket.id);
+
             deleteRoom(id);
             break;
         }
     });
 
     socket.on("request_rematch", ({ code }: { code: string }) => {
-        const room = getRoomByCode(code);
+        const anyRoom = getRoomByCode(code);
+        if (!anyRoom || !is1v1Room(anyRoom)) return;
+        const room = anyRoom;
         if (!room || room.status !== "finished") return;
 
         if (!room.rematchRequests) room.rematchRequests = new Set();
@@ -559,11 +581,11 @@ io.on("connection", (socket: Socket) => {
     });
 
     socket.on("decline_rematch", ({ code }: { code: string }) => {
-        const room = getRoomByCode(code);
-        if (!room) return;
+        const anyRoom = getRoomByCode(code);
+        if (!anyRoom) return;
 
-        io.to(room.id).emit("rematch_declined", { by: socket.id });
-        deleteRoom(room.id);
+        io.to(anyRoom.id).emit("rematch_declined", { by: socket.id });
+        deleteRoom(anyRoom.id);
     });
 
     socket.on("find_match", (data: { name: string; cups?: number }) => {

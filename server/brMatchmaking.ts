@@ -147,12 +147,12 @@ export function launchBRMatch(io: Server) {
         createdAt: Date.now(),
     };
 
-    createRoom(room as any);
+    createRoom(room);
 
     for (const p of participants) {
         const socket = io.sockets.sockets.get(p.socketId);
         socket?.join(id);
-        socket?.emit("br_match_found", { code });
+        socket?.emit("br_match_found", { code, roomId: id });
     }
 
     let counter = 3;
