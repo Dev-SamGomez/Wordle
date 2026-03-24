@@ -17,3 +17,5 @@ export type CompetitiveProfile = {
     lastUpdated: string;
     history: CompetitiveHistoryItem[];
 };
+
+export type CompetitiveMode = null | "1v1" | "battle_royale";
