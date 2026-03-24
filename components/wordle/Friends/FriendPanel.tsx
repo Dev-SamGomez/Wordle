@@ -20,6 +20,7 @@ import CompetitiveRecord from "../HistoryCompetitive";
 import { usePresenceFirestore } from "@/hooks/use-presence";
 import { FriendRow } from "@/data/friend-row";
 import FriendCard from "./FriendCard";
+import { useToast } from "@/context/ToastContext";
 
 type Props = { game: ReturnType<typeof useMultiplayer> };
 
@@ -38,6 +39,7 @@ const sameSet = (a: string[], b: string[]) => {
 
 export default function FriendsPanel({ game }: Props) {
     const { user } = useAuth();
+    const { pushToast } = useToast();
     const presence = usePresenceFirestore();
     const deps = getFirebase();
     if (!deps) throw new Error("Firebase no disponible");
@@ -56,13 +58,7 @@ export default function FriendsPanel({ game }: Props) {
     const [outgoingChallenges, setOutgoingChallenges] = useState<any[]>([]);
     const [showHistoryCompetitive, setShowHistoryCompetitive] = useState(false);
     const [uid, setUid] = useState<string | null>(null)
-    const [toasts, setToasts] = useState<{ id: number; kind: "success" | "error"; msg: string }[]>([]);
     const notifiedChallengesRef = useRef<Set<string>>(new Set());
-    const pushToast = (t: any) => {
-        const id = Date.now();
-        setToasts((prev) => [...prev, { id, ...t }]);
-        setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== id)), 3000);
-    };
 
     const chunkWatchersRef = useRef<Map<string, () => void>>(new Map());
     const allUnsubsRef = useRef<Set<() => void>>(new Set());
@@ -535,21 +531,6 @@ export default function FriendsPanel({ game }: Props) {
                             </div>
                         )}
                     </section>
-                </div>
-
-                <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 w-full pointer-events-none">
-                    {toasts.map((t) => (
-                        <div
-                            key={t.id}
-                            className={`
-                px-4 py-2 rounded font-bold text-sm shadow-2xl
-                transition-all duration-300 animate-in fade-in slide-in-from-top-4
-                ${t.kind === "success" ? "bg-[hsl(var(--tile-correct))] text-foreground" : "bg-background text-foreground"}
-            `}
-                        >
-                            {t.msg}
-                        </div>
-                    ))}
                 </div>
 
                 {showHistoryCompetitive && <CompetitiveRecord onClose={() => { setShowHistoryCompetitive(false); setUid(null); }} uid={uid} />}
