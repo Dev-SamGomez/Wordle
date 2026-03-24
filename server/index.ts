@@ -508,6 +508,55 @@ io.on("connection", (socket: Socket) => {
         scheduleCleanup(room);
     });
 
+    socket.on("cancel_room", ({ code, challengeId }: { code: string; challengeId?: string }) => {
+        const room = getRoomByCode(code);
+        if (!room) return;
+        console.log("cancelando")
+        const isHostInside = room.players.some(p => p.socketId === socket.id);
+        if (!isHostInside) return;
+
+        const playersCount = room.players.length;
+
+        if (playersCount === 1) {
+            socket.emit("room_cancelled", { code });
+            deleteRoom(room.id);
+            return;
+        }
+
+        if (room.status === "playing" || room.status === "countdown" || room.status === "waiting") {
+            const leaver = room.players.find(p => p.socketId === socket.id);
+            const opponent = room.players.find(p => p.socketId !== socket.id);
+
+            if (!opponent) {
+                socket.emit("room_cancelled", { code });
+                deleteRoom(room.id);
+                return;
+            }
+
+            room.status = "finished";
+            io.to(room.id).emit("game_finished", {
+                winnerSocketId: opponent.socketId,
+                winnerName: opponent.name,
+                reason: "leave",
+            });
+            scheduleCleanup(room);
+            deleteRoom(room.id);
+            return;
+        }
+    });
+
+    socket.on("reject_room", ({ code }: { code: string }) => {
+        const room = getRoomByCode(code);
+        if (!room) return;
+
+        const host = room.players[0];
+        if (host) {
+            io.to(host.socketId).emit("room_rejected");
+        }
+
+        deleteRoom(room.id);
+    });
+
     socket.on("disconnect", () => {
         for (const [id, room] of roomsById.entries()) {
             const player = room.players.find(p => p.socketId === socket.id);

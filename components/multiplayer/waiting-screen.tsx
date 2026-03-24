@@ -1,8 +1,13 @@
 import { copyGameCode } from "@/utils/copyGameCode";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 
-const WaitingScreen = ({ roomId }: { roomId: string }) => {
+interface WaitingScreenProps {
+    roomId: string,
+    handleCancel: () => void
+}
+
+const WaitingScreen = ({ roomId, handleCancel }: WaitingScreenProps) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
@@ -40,12 +45,22 @@ const WaitingScreen = ({ roomId }: { roomId: string }) => {
                         </p>
                     )}
 
-                    <div className="mt-6 flex items-center justify-center gap-2">
-                        <span className="relative flex h-2.5 w-2.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#538d4e] opacity-75" />
-                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#538d4e]" />
-                        </span>
-                        <span className="text-xs text-muted-foreground">Sala activa</span>
+                    <div className="mt-6 flex flex-col items-center justify-center gap-2">
+                        <div className="flex flex-row items-center justify-center">
+                            <span className="relative flex h-2.5 w-2.5 mr-2">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#538d4e] opacity-75" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#538d4e]" />
+                            </span>
+                            <span className="text-xs text-muted-foreground">Partida activa</span>
+                        </div>
+
+                        <button
+                            onClick={handleCancel}
+                            className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-md bg-[hsl(var(--destructive))] text-foreground hover:brightness-110"
+                        >
+                            <XCircle className="w-4 h-4" />
+                            Cancelar
+                        </button>
                     </div>
                 </div>
             </div>

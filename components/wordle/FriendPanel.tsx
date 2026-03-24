@@ -378,8 +378,9 @@ export default function FriendsPanel({ game }: Props) {
         }
         try {
             presence.setBusy()
-            const code = await sendChallengeWithRoom(uid, game.createRoomAndWaitCode);
-            pushToast({ kind: "success", msg: `Desafío enviado (código: ${code})` });
+            const { roomCode, challengeId } = await sendChallengeWithRoom(uid, game.createRoomAndWaitCode);
+            game.setCurrentChallengeId(challengeId);
+            pushToast({ kind: "success", msg: `Desafío enviado (código: ${roomCode})` });
         } catch (e: any) { pushToast({ kind: "error", msg: e?.message }); }
     }
 
@@ -391,12 +392,14 @@ export default function FriendsPanel({ game }: Props) {
     }
 
     const handleRejectChallenge = async (chId: string) => {
-        try {
-            await rejectChallenge(chId);
-            pushToast({ kind: "success", msg: "Se rechazó el desafío" });
-        } catch (e: any) {
-            pushToast({ kind: "error", msg: e?.message || "No se pudo rechazar el desafío" });
-        }
+        const ch = incomingChallenges.find(c => c.id === chId);
+        if (!ch) return;
+
+        await rejectChallenge(chId);
+
+        game.rejectRoom(ch.roomCode);
+
+        pushToast({ kind: "success", msg: "Se rechazó el desafío" });
     };
 
     return (

@@ -23,6 +23,10 @@ export default function MultiplayerHome() {
         setName(nickname)
     }, [user]);
 
+    const handleCancel = () => {
+        game.cancelRoom();
+    };
+
     if (!user) {
         return (
             <>
@@ -63,7 +67,7 @@ export default function MultiplayerHome() {
     }
 
     if (game.gameStatus === "waiting") {
-        return <WaitingScreen roomId={game.roomId} />;
+        return <WaitingScreen roomId={game.roomId} handleCancel={handleCancel} />;
     }
 
     if (game.gameStatus === "countdown") {

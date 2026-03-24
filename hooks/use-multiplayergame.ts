@@ -9,6 +9,7 @@ import { RivalUpdate } from "@/data/rival-update-type";
 import { GameFinishedPayload } from "@/data/game-finished-payload-type";
 import { getCurrentUser } from "@/lib/auth-client";
 import { getCompetitiveProfile, normalizeCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/utils/competitive-firestore";
+import { cancelOutgoingChallenge } from "@/utils/challenges";
 
 const EMPTY_PROFILE: CompetitiveProfile = {
     cups: 0, wins: 0, losses: 0, draws: 0, gamesPlayed: 0,
@@ -44,6 +45,7 @@ export function useMultiplayer() {
     const [drawStatus, setDrawStatus] = useState<"idle" | "offering" | "incoming" | "accepted" | "declined" | "expired">("idle");
     const [drawOfferFrom, setDrawOfferFrom] = useState<{ id: string; name: string } | null>(null);
     const [drawOffersCount, setDrawOffersCount] = useState(0);
+    const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
 
     const wordsRef = useRef<string[]>([]);
     const idxRef = useRef(0);
@@ -284,6 +286,28 @@ export function useMultiplayer() {
             setDrawStatus("idle");
         });
 
+        const onRoomCancelled = ({ code }: { code: string }) => {
+            if (pendingRoomRejectRef.current) {
+                try { pendingRoomRejectRef.current(new Error("Sala cancelada por el anfitrión")); }
+                finally {
+                    pendingRoomResolveRef.current = null;
+                    pendingRoomRejectRef.current = null;
+                }
+            }
+            setRoomId(null);
+            setStatus("waiting");
+            setRematchStatus("idle");
+            setWinnerSocketId(null);
+            setCurrentChallengeId(null);
+        };
+
+        s.on("room_cancelled", onRoomCancelled);
+
+        s.on("room_rejected", () => {
+            setRoomId(null);
+            setStatus("waiting");
+        });
+
         return () => {
             s.off("connect");
             s.off("disconnect");
@@ -302,6 +326,7 @@ export function useMultiplayer() {
             s.off("draw_offer_ack");
             s.off("draw_offer");
             s.off("draw_declined");
+            s.off("room_cancelled", onRoomCancelled);
             s.disconnect();
             socketRef.current = null;
         }
@@ -453,6 +478,27 @@ export function useMultiplayer() {
         setStatus("waiting");
         setWinnerSocketId(null);
         setRematchStatus("idle");
+        setCurrentChallengeId(null);
+    };
+
+    const cancelRoom = async () => {
+        if (!roomId) return;
+
+        socketRef.current?.emit("cancel_room", { code: roomId });
+        console.log(currentChallengeId)
+
+        if (currentChallengeId) {
+            await cancelOutgoingChallenge(currentChallengeId);
+        }
+
+        setRoomId(null);
+        setStatus("waiting");
+    };
+
+    const rejectRoom = (roomCode: string) => {
+        socketRef.current?.emit("reject_room", { code: roomCode });
+        setRoomId(null);
+        setStatus("waiting");
     };
 
     const findMatch = (name?: string, cups?: number) => {
@@ -539,6 +585,10 @@ export function useMultiplayer() {
         drawStatus,
         drawOfferFrom,
         drawOffersCount,
-        canOfferDraw
+        canOfferDraw,
+        cancelRoom,
+        setCurrentChallengeId,
+        currentChallengeId,
+        rejectRoom
     };
 }
