@@ -9,7 +9,7 @@ import dotenv from "dotenv";
 import { generateRoomCode, matchmakingQueue, QueueEntry, removeFromQueue, takeOpponentFIFO } from "./matchmaking";
 import { addToBRQueue, hostForceLaunch, removeFromBRQueue } from "./brMatchmaking";
 import { BattleRoyaleRoom } from "./brTypes";
-import { handleBRRowResolved, handleSuddenDeathRowResolved } from "./brGameEngine";
+import { endBRMatch, handleBRRowResolved, handleSuddenDeathRowResolved } from "./brGameEngine";
 dotenv.config();
 
 const app = express();
@@ -552,12 +552,29 @@ io.on("connection", (socket: Socket) => {
                     });
                     scheduleCleanup(anyRoom);
                 }
+                deleteRoom(id);
+
             } else if (isBRRoom(anyRoom)) {
                 const brPlayer = anyRoom.players.find(p => p.socketId === socket.id);
-                if (brPlayer) brPlayer.abandoned = true;
+                if (!brPlayer) break;
+
+                brPlayer.abandoned = true;
+                brPlayer.isEliminated = true;
+                brPlayer.eliminatedAtRound = anyRoom.currentRound;
+
+                io.to(id).emit("br_player_abandoned", {
+                    socketId: socket.id,
+                    name: brPlayer.name,
+                });
+
+                const survivors = anyRoom.players.filter(p => !p.isEliminated);
+                if (survivors.length === 1 && anyRoom.status !== "finished") {
+                    endBRMatch(io, anyRoom, survivors[0]);
+                } else if (survivors.length === 0 && anyRoom.status !== "finished") {
+                    deleteRoom(id);
+                }
             }
 
-            deleteRoom(id);
             break;
         }
     });

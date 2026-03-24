@@ -79,7 +79,7 @@ export function handleBRRowResolved(
 
     const activePlayers = room.players.filter(p => !p.isEliminated);
     const allDone = activePlayers.every(p => p.finishedCurrentWord);
-    if (allDone) {
+    if (allDone && room.status === "round_active") {
         room.allFinishedCurrent = true;
         if (room.roundTimer) {
             clearTimeout(room.roundTimer);
@@ -90,7 +90,7 @@ export function handleBRRowResolved(
 }
 
 function closeRound(io: Server, room: BattleRoyaleRoom) {
-    if (room.status !== "round_active") return;
+    if (room.status !== "round_active" && room.status !== "sudden_death") return;
     room.status = "round_end";
 
     if (room.roundTimer) {
@@ -225,16 +225,20 @@ export function handleSuddenDeathRowResolved(
     player.finishedCurrentWord = true;
     player.solvedCurrentWord = data.wasSolved;
 
-    if (data.wasSolved) {
+    if (data.wordFinished && data.wasSolved && room.status === "sudden_death") {
+        player.finishedCurrentWord = true;
+        player.solvedCurrentWord = data.wasSolved;
         if (room.roundTimer) clearTimeout(room.roundTimer);
         endBRMatch(io, room, player);
     }
 }
 
-function endBRMatch(io: Server, room: BattleRoyaleRoom, winner: BRPlayerState | null) {
-    const reachedSuddenDeath = room.status === "sudden_death";
+export function endBRMatch(io: Server, room: BattleRoyaleRoom, winner: BRPlayerState | null) {
+    if (room.status === "finished") return;
 
+    const reachedSuddenDeath = room.status === "sudden_death";
     room.status = "finished";
+
     room.winner = winner?.socketId;
 
     if (room.roundTimer) {
