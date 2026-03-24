@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from 'next/font/google'
 
 import './globals.css'
 import { cookies } from 'next/headers'
+import { ToastProvider } from '@/context/ToastContext'
+import { NotificationsProvider } from '@/providers/NotificationsProvider'
 
 const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
@@ -53,7 +55,13 @@ export default async function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <ToastProvider>
+          <NotificationsProvider>
+            {children}
+          </NotificationsProvider>
+        </ToastProvider>
+      </body>
     </html>
   )
 }
