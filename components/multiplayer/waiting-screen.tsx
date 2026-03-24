@@ -1,5 +1,5 @@
 import { copyGameCode } from "@/utils/copyGameCode";
-import { Copy, Loader2, XCircle } from "lucide-react";
+import { Copy, Loader2, X } from "lucide-react";
 import { useState } from "react";
 
 interface WaitingScreenProps {
@@ -58,7 +58,7 @@ const WaitingScreen = ({ roomId, handleCancel }: WaitingScreenProps) => {
                             onClick={handleCancel}
                             className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-md bg-[hsl(var(--destructive))] text-foreground hover:brightness-110"
                         >
-                            <XCircle className="w-4 h-4" />
+                            <X className="w-4 h-4" />
                             Cancelar
                         </button>
                     </div>
