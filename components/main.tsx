@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { User, Users, HelpCircle, CalendarDays } from "lucide-react";
-import { DAILY_BOARD, LETTERS, MINI_BOARD } from "@/data/letters-title";
+import { DAILY_BOARD, LETTERS, MINI_BOARD } from "@/lib/models/letters-title";
 import { STATE_COLORS } from "@/data/dictionaries/state-colors";
 
 const GRID_ROWS = 6;

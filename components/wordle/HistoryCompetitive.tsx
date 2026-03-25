@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { Trophy, Swords, X, Loader2 } from "lucide-react";
 
 import { CompetitiveProfile } from "@/data/competitive-res";
-import { RANKS } from "@/data/ranks";
+import { RANKS } from "@/lib/models/ranks";
 import { formatDate } from "@/lib/utils/formatDate";
 import { getRankInfo } from "@/lib/utils/getRank";
-import { resultConfig } from "@/data/result-config";
+import { resultConfig } from "@/lib/models/result-config";
 import { getCompetitiveProfile } from "@/lib/utils/competitive-firestore";
 import AuthRequiredModal from "../auth/AuthGate";
 import { useAuth } from "@/lib/hooks/use-auth";

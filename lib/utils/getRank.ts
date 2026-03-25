@@ -1,4 +1,4 @@
-import { RANKS } from "@/data/ranks";
+import { RANKS } from "@/lib/models/ranks";
 
 export const getRankInfo = (cups: number): { label: string; color: string } => {
     if (cups >= 3000) return { label: "Maestro", color: "#b59f3b" };

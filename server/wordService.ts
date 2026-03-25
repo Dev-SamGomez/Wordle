@@ -1,4 +1,4 @@
-import { WORDS } from "../data/words";
+import { WORDS } from "../lib/models/words";
 
 const uniqueWords = [...new Set(WORDS.map(w => w.toUpperCase()))];
 

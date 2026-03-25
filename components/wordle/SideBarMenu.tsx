@@ -9,7 +9,7 @@ import {
 import { formatCups } from "@/lib/utils/competitive";
 import { Flame, Trophy } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { menuItems } from "@/data/menu-schema";
+import { menuItems } from "@/lib/models/menu-schema";
 interface SidebarMenuProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;

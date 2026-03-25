@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { WORDS } from "@/data/words";
+import { WORDS } from "@/lib/models/words";
 import { evaluateGuess, type LetterState } from "@/lib/utils/evaluateWord";
 import { useAuth } from "./use-auth";
 import { getFirebase } from "@/lib/firebase-client";
