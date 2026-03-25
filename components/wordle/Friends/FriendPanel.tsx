@@ -13,8 +13,8 @@ import {
     searchUsersByNicknameLowerPrefix,
     sendFriendRequest as sendFriendRequestUtil,
     onOutgoingFriendRequestsSnapshot,
-} from "@/utils/social";
-import { acceptChallengeAndJoin, onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot, rejectChallenge, sendChallengeWithRoom } from "@/utils/challenges";
+} from "@/lib/utils/social";
+import { acceptChallengeAndJoin, onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot, rejectChallenge, sendChallengeWithRoom } from "@/lib/utils/challenges";
 import { useMultiplayer } from "@/hooks/use-multiplayergame";
 import CompetitiveRecord from "../HistoryCompetitive";
 import { usePresenceFirestore } from "@/hooks/use-presence";

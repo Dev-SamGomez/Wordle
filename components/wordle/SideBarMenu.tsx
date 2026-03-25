@@ -6,7 +6,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
-import { formatCups } from "@/utils/competitive";
+import { formatCups } from "@/lib/utils/competitive";
 import { Flame, Trophy } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { menuItems } from "@/data/menu-schema";

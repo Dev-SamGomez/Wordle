@@ -1,4 +1,4 @@
-import { LetterState } from "@/utils/evaluateWord";
+import { LetterState } from "@/lib/utils/evaluateWord";
 
 export type RivalUpdate = {
     solvedCount: number;

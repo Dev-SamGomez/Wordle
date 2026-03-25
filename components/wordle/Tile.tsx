@@ -1,6 +1,6 @@
 "use client";
 
-import { type LetterState } from "@/utils/evaluateWord";
+import { type LetterState } from "@/lib/utils/evaluateWord";
 
 interface TileProps {
   letter: string;

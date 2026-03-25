@@ -1,4 +1,4 @@
-import { copyGameCode } from "@/utils/copyGameCode";
+import { copyGameCode } from "@/lib/utils/copyGameCode";
 import { Copy, Loader2, X } from "lucide-react";
 import { useState } from "react";
 

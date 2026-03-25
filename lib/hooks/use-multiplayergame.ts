@@ -2,14 +2,14 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useGame } from "./use-game";
-import type { LetterState } from "@/utils/evaluateWord";
-import { applyCompetitiveResult } from "@/utils/competitive";
+import type { LetterState } from "@/lib/utils/evaluateWord";
+import { applyCompetitiveResult } from "@/lib/utils/competitive";
 import { CompetitiveProfile, CompetitiveResult } from "@/data/competitive-res";
 import { RivalUpdate } from "@/data/rival-update-type";
 import { GameFinishedPayload } from "@/data/game-finished-payload-type";
 import { getCurrentUser } from "@/lib/auth-client";
-import { getCompetitiveProfile, normalizeCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/utils/competitive-firestore";
-import { cancelOutgoingChallenge } from "@/utils/challenges";
+import { getCompetitiveProfile, normalizeCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/lib/utils/competitive-firestore";
+import { cancelOutgoingChallenge } from "@/lib/utils/challenges";
 
 const EMPTY_PROFILE: CompetitiveProfile = {
     cups: 0, wins: 0, losses: 0, draws: 0, gamesPlayed: 0,

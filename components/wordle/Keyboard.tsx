@@ -1,7 +1,7 @@
 "use client";
 
 import { Delete } from "lucide-react";
-import { type LetterState } from "@/utils/evaluateWord";
+import { type LetterState } from "@/lib/utils/evaluateWord";
 
 interface KeyboardProps {
   onKey: (key: string) => void;

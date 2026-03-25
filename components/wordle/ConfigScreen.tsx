@@ -2,10 +2,10 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { X, Sun, Moon, Monitor, Volume2, VolumeX, User as UserIcon, Check, AlertTriangle, ShieldCheck, Loader2 } from "lucide-react";
-import { applyTheme, listenSystemThemeChange, Theme } from "@/utils/theme";
+import { applyTheme, listenSystemThemeChange, Theme } from "@/lib/utils/theme";
 
 import { useAuth } from "@/hooks/use-auth";
-import { isNicknameAvailable, normalizeNickname, updateNicknameTransactional } from "@/utils/nicknames";
+import { isNicknameAvailable, normalizeNickname, updateNicknameTransactional } from "@/lib/utils/nicknames";
 
 interface SettingsData {
     theme: Theme;

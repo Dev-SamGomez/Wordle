@@ -16,7 +16,7 @@ import SettingsScreen from "@/components/wordle/ConfigScreen";
 import { signOutUser } from "@/lib/auth-client";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
-import { formatCups } from "@/utils/competitive";
+import { formatCups } from "@/lib/utils/competitive";
 import { usePresenceFirestore } from "@/hooks/use-presence";
 import { EdgeSwipeZone } from "@/components/wordle/EdgeSwipeZone";
 

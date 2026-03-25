@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Trophy, X, Crown, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { getRank } from "@/utils/getRank";
+import { getRank } from "@/lib/utils/getRank";
 
 import { collection, query, orderBy, limit, onSnapshot, where } from "firebase/firestore";
 import { getFirebase } from "@/lib/firebase-client";

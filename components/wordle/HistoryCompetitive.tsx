@@ -5,11 +5,11 @@ import { Trophy, Swords, X, Loader2 } from "lucide-react";
 
 import { CompetitiveProfile } from "@/data/competitive-res";
 import { RANKS } from "@/data/ranks";
-import { formatDate } from "@/utils/formatDate";
-import { getRankInfo } from "@/utils/getRank";
+import { formatDate } from "@/lib/utils/formatDate";
+import { getRankInfo } from "@/lib/utils/getRank";
 import { resultConfig } from "@/data/result-config";
 import { useAuth } from "@/hooks/use-auth";
-import { getCompetitiveProfile } from "@/utils/competitive-firestore";
+import { getCompetitiveProfile } from "@/lib/utils/competitive-firestore";
 import AuthRequiredModal from "../auth/AuthGate";
 
 interface CompetitiveRecordProps {

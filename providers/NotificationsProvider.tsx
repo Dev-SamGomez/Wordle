@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot } from "@/utils/challenges";
+import { onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot } from "@/lib/utils/challenges";
 import { useToast } from "@/context/ToastContext";
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
