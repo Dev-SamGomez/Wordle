@@ -3,8 +3,8 @@ import { Geist, Geist_Mono } from 'next/font/google'
 
 import './globals.css'
 import { cookies } from 'next/headers'
-import { ToastProvider } from '@/context/ToastContext'
-import { NotificationsProvider } from '@/providers/NotificationsProvider'
+import { ToastProvider } from '@/src/context/ToastContext'
+import { NotificationsProvider } from '@/src/providers/NotificationsProvider'
 
 const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })

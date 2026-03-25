@@ -1,0 +1,594 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
+import { useGame } from "./use-game";
+import type { LetterState } from "@/src/lib/utils/evaluateWord";
+import { applyCompetitiveResult } from "@/src/lib/utils/competitive";
+import { CompetitiveProfile, CompetitiveResult } from "@/src/data/competitive-res";
+import { RivalUpdate } from "@/src/data/rival-update-type";
+import { GameFinishedPayload } from "@/src/data/game-finished-payload-type";
+import { getCurrentUser } from "@/src/lib/auth-client";
+import { getCompetitiveProfile, normalizeCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/src/lib/utils/competitive-firestore";
+import { cancelOutgoingChallenge } from "@/src/lib/utils/challenges";
+
+const EMPTY_PROFILE: CompetitiveProfile = {
+    cups: 0, wins: 0, losses: 0, draws: 0, gamesPlayed: 0,
+    lastUpdated: new Date().toISOString(),
+    history: [],
+};
+
+const MAX_GUESSES = 6;
+const MAX_DRAWS_PER_MATCH = 2;
+
+export function useMultiplayer() {
+    const game = useGame();
+
+    const [socket, setSocket] = useState<Socket | null>(null);
+    const socketRef = useRef<Socket | null>(null);
+    const [roomId, setRoomId] = useState<string | null>(null);
+    const [status, setStatus] = useState<"waiting" | "queueing" | "countdown" | "playing" | "finished">("waiting");
+    const [countdown, setCountdown] = useState(3);
+    const [winner, setWinner] = useState<string | null>(null);
+    const [myName, setMyName] = useState<string>("");
+    const [opponentName, setOpponentName] = useState<string>("");
+    const [score, setScore] = useState(0);
+    const [rivalScore, setRivalScore] = useState(0);
+    const [rivalWordIndex, setRivalWordIndex] = useState(0);
+    const [rivalBoard, setRivalBoard] = useState<(LetterState | null)[][]>([]);
+    const [roundResultsPlayer, setRoundResultsPlayer] = useState<("win" | "loss" | null)[]>([null, null, null]);
+    const [roundResultsRival, setRoundResultsRival] = useState<("win" | "loss" | null)[]>([null, null, null]);
+    const [rematchStatus, setRematchStatus] = useState<"idle" | "waiting" | "countdown" | "declined">("idle");
+    const [mySocketId, setMySocketId] = useState<string | null>(null);
+    const [winnerSocketId, setWinnerSocketId] = useState<string | "draw" | null>(null);
+    const [profile, setProfile] = useState<CompetitiveProfile>(EMPTY_PROFILE);
+    const [lastMatchDelta, setLastMatchDelta] = useState<number | null>(null);
+    const [drawStatus, setDrawStatus] = useState<"idle" | "offering" | "incoming" | "accepted" | "declined" | "expired">("idle");
+    const [drawOfferFrom, setDrawOfferFrom] = useState<{ id: string; name: string } | null>(null);
+    const [drawOffersCount, setDrawOffersCount] = useState(0);
+    const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
+
+    const wordsRef = useRef<string[]>([]);
+    const idxRef = useRef(0);
+    const profileRef = useRef<CompetitiveProfile>(EMPTY_PROFILE);
+    const lastHandledKeyRef = useRef<string | null>(null);
+    const subscribedRef = useRef(false);
+    const processedRevealKeysRef = useRef<Set<string>>(new Set());
+
+    const finishAppliedRef = useRef(false);
+
+    const pendingRoomResolveRef = useRef<((code: string) => void) | null>(null);
+    const pendingRoomRejectRef = useRef<((err: any) => void) | null>(null);
+    const canOfferDraw = drawOffersCount < MAX_DRAWS_PER_MATCH && drawStatus === "idle";
+
+    const getDefaultName = () => {
+        const u = getCurrentUser();
+        return u?.displayName ?? u?.email?.split("@")[0] ?? "Jugador";
+    };
+
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (!user) return;
+
+        getCompetitiveProfile(user.uid).then(loaded => {
+            profileRef.current = loaded;
+            setProfile(loaded);
+        });
+    }, []);
+
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (!user) return;
+
+        getCompetitiveProfile(user.uid).then(setProfile);
+    }, []);
+
+    useEffect(() => {
+        const s = io(process.env.NEXT_PUBLIC_SOCKET_URL);
+        socketRef.current = s;
+        setSocket(s);
+
+        s.on("connect", () => {
+            setMySocketId(s.id ?? null);
+        });
+
+        s.on("disconnect", () => {
+            setMySocketId(s.id ?? null);
+        });
+
+        s.on("room_created", ({ code }) => {
+            setRoomId(code);
+            setStatus("waiting");
+            setScore(0);
+            setRivalScore(0);
+            setRivalBoard([]);
+            setRivalWordIndex(0);
+            if (pendingRoomResolveRef.current) {
+                try { pendingRoomResolveRef.current(code); } finally {
+                    pendingRoomResolveRef.current = null;
+                    pendingRoomRejectRef.current = null;
+                }
+            }
+        });
+
+        s.on("join_error", () => {
+            setStatus("waiting");
+            if (pendingRoomRejectRef.current) {
+                try { pendingRoomRejectRef.current(new Error("Error al crear o unir a la sala")); } finally {
+                    pendingRoomResolveRef.current = null;
+                    pendingRoomRejectRef.current = null;
+                }
+            }
+        });
+
+        s.on("room_ready", () => {
+            finishAppliedRef.current = false;
+            processedRevealKeysRef.current.clear();
+            setLastMatchDelta(null);
+            setRematchStatus("countdown");
+            setStatus("countdown");
+            setCountdown(3);
+            setScore(0);
+            setRivalScore(0);
+            setRoundResultsPlayer([null, null, null]);
+            setRoundResultsRival([null, null, null]);
+            setRivalBoard([]);
+            setRivalWordIndex(0);
+        });
+
+        s.on("countdown_tick", (n) => {
+            setCountdown(n);
+        });
+
+        s.on("game_start", ({ words }) => {
+            wordsRef.current = words.map((w: string) => w.toUpperCase());
+            idxRef.current = 0;
+            lastHandledKeyRef.current = null;
+            finishAppliedRef.current = false;
+            processedRevealKeysRef.current.clear();
+            setLastMatchDelta(null);
+
+            game.multiplayerMode();
+            game.startMultiplayerRound(wordsRef.current[0]);
+
+            setScore(0);
+            setRivalScore(0);
+            setRivalBoard([]);
+            setRivalWordIndex(0);
+            setRoundResultsPlayer([null, null, null]);
+            setRoundResultsRival([null, null, null]);
+            setStatus("playing");
+        });
+
+        s.on("rival_progress", (data: RivalUpdate) => {
+            setRivalScore(data.solvedCount);
+            setRivalWordIndex(data.currentWordIndex);
+
+            setRivalBoard((prev) => {
+                const eval5 = (data.evaluation ?? []).slice(0, 5);
+                if (prev.length >= MAX_GUESSES) {
+                    return [...prev.slice(1), eval5];
+                }
+                return [...prev, eval5];
+            });
+
+            if (data.wordFinished && typeof data.wordIndex === "number") {
+                const idx = data.wordIndex;
+                const solved = !!data.wasSolved;
+                setRoundResultsRival(prev => {
+                    const next = [...prev];
+                    next[idx] = solved ? "win" : "loss";
+                    return next;
+                });
+                setTimeout(() => setRivalBoard([]), 1200);
+            }
+        });
+
+        s.on("opponent_info", (payload: {
+            mySocketId: string;
+            myName: string;
+            opponentSocketId: string;
+            opponentName: string;
+            roomCode: string;
+        }) => {
+            setMySocketId(payload.mySocketId ?? null);
+            setMyName(payload.myName || myName);
+            setOpponentName(payload.opponentName || "");
+            setRoomId(payload.roomCode);
+        });
+
+        s.on("game_finished", async (data: GameFinishedPayload) => {
+            if (finishAppliedRef.current) {
+                setStatus("finished");
+                setRematchStatus("idle");
+                return;
+            }
+            finishAppliedRef.current = true;
+
+            const myId = socketRef.current?.id ?? null;
+            const user = getCurrentUser();
+
+            let result: CompetitiveResult;
+            if (!data.winnerSocketId || data.winnerSocketId === "draw") {
+                result = "draw";
+            } else {
+                result = data.winnerSocketId === myId ? "win" : "lose";
+            }
+
+            const freshProfileRaw = user
+                ? await getCompetitiveProfile(user.uid)
+                : profileRef.current;
+
+            const freshProfile = normalizeCompetitiveProfile(freshProfileRaw ?? EMPTY_PROFILE);
+
+            const updated = applyCompetitiveResult(freshProfile, result, {
+                roomCode: roomId,
+                opponentId: data.scores?.find(s => s.socketId !== myId)?.socketId ?? null,
+            });
+
+            profileRef.current = updated;
+            setProfile(updated);
+            setLastMatchDelta(updated.cups - freshProfile.cups);
+
+            if (user) {
+                await saveCompetitiveProfileToFirestore(user.uid, updated);
+                await updateLeaderboardFromProfile(user.uid, updated);
+            }
+
+            setWinner(data.winnerName);
+            setWinnerSocketId(data.winnerSocketId ?? null);
+            setStatus("finished");
+            setRematchStatus("idle");
+        });
+
+        s.on("rematch_update", ({ requested }: { requested: string[] }) => {
+            const myId = socketRef.current?.id;
+            if (myId && requested.includes(myId) && requested.length === 1) {
+                setRematchStatus("waiting");
+            }
+        });
+
+        s.on("rematch_declined", () => {
+            setRematchStatus("declined");
+        });
+
+        s.on("queue_update", (payload: any) => {
+            if (payload?.status === "enqueued") {
+                setStatus("queueing");
+            } else if (payload?.status === "cancelled") {
+                setStatus("waiting");
+            }
+        });
+
+        s.on("match_found", ({ code, opponentName }) => {
+            setRoomId(code);
+        });
+
+        s.on("draw_offer_ack", ({ ok, reason }: { ok: boolean; reason?: string }) => {
+            if (!ok) {
+                setDrawStatus("idle");
+                return;
+            }
+            setDrawOffersCount((n) => n + 1);
+        });
+
+        s.on("draw_offer", ({ by, byName }: { by: string; byName: string }) => {
+            setDrawOfferFrom({ id: by, name: byName });
+            setDrawStatus("incoming");
+        });
+
+        s.on("draw_declined", ({ by, auto }: { by: string; auto?: boolean }) => {
+            setDrawStatus(auto ? "expired" : "declined");
+            setTimeout(() => setDrawStatus("idle"), 1000);
+        });
+
+        s.on("game_finished", (payload: GameFinishedPayload) => {
+            setDrawOfferFrom(null);
+            setDrawStatus("idle");
+        });
+
+        const onRoomCancelled = ({ code }: { code: string }) => {
+            if (pendingRoomRejectRef.current) {
+                try { pendingRoomRejectRef.current(new Error("Sala cancelada por el anfitrión")); }
+                finally {
+                    pendingRoomResolveRef.current = null;
+                    pendingRoomRejectRef.current = null;
+                }
+            }
+            setRoomId(null);
+            setStatus("waiting");
+            setRematchStatus("idle");
+            setWinnerSocketId(null);
+            setCurrentChallengeId(null);
+        };
+
+        s.on("room_cancelled", onRoomCancelled);
+
+        s.on("room_rejected", () => {
+            setRoomId(null);
+            setStatus("waiting");
+        });
+
+        return () => {
+            s.off("connect");
+            s.off("disconnect");
+            s.off("reconnect");
+            s.off("rematch_update");
+            s.off("room_created");
+            s.off("join_error");
+            s.off("room_ready");
+            s.off("countdown_tick");
+            s.off("game_start");
+            s.off("rival_progress");
+            s.off("game_finished");
+            s.off("queue_update");
+            s.off("match_found");
+            s.off("opponent_info");
+            s.off("draw_offer_ack");
+            s.off("draw_offer");
+            s.off("draw_declined");
+            s.off("room_cancelled", onRoomCancelled);
+            s.disconnect();
+            socketRef.current = null;
+        }
+    }, []);
+
+    useEffect(() => {
+        const s = socketRef.current;
+        if (!s) return;
+
+        const onRowAck = (payload: {
+            accepted: boolean;
+            currentWordIndex?: number;
+            expected?: number;
+            received?: number;
+            wordJustFinished?: number;
+            wasSolved?: boolean;
+        }) => {
+            if (!payload) return;
+
+            if (!payload.accepted) {
+                return;
+            }
+
+            const next = payload.currentWordIndex ?? idxRef.current;
+            if (next > idxRef.current && next < wordsRef.current.length) {
+                idxRef.current = next;
+                processedRevealKeysRef.current.clear();
+                game.startMultiplayerRound(wordsRef.current[next]);
+            }
+
+        };
+
+        s.on("row_ack", onRowAck);
+        return () => {
+            s.off("row_ack", onRowAck);
+        };
+    }, [game]);
+
+    useEffect(() => {
+        if (subscribedRef.current) return;
+        subscribedRef.current = true;
+
+        const unsub = game.onRevealComplete(
+            ({ rowIndex, wasSolved, evaluation, wordFinished, exhausted, solution, guess }) => {
+                const s = socketRef.current;
+                if (!s) return;
+
+                const sol = solution?.toUpperCase?.() ?? solution;
+                const dedupeKey = `${sol}:${rowIndex}`;
+
+                if (processedRevealKeysRef.current.has(dedupeKey)) return;
+                processedRevealKeysRef.current.add(dedupeKey);
+
+                let wIdxFromSolution = wordsRef.current.findIndex((w) => w === sol);
+                if (wIdxFromSolution < 0) {
+                    wIdxFromSolution = idxRef.current;
+                }
+
+                s.emit("row_resolved", {
+                    code: roomId,
+                    wordIndex: wIdxFromSolution,
+                    wasSolved,
+                    lastEval: evaluation,
+                    wordFinished,
+                });
+
+                if (!wordFinished) return;
+
+                setRoundResultsPlayer((prev) => {
+                    const next = [...prev];
+                    next[wIdxFromSolution] = wasSolved ? "win" : "loss";
+                    return next;
+                });
+                if (wasSolved) setScore((x) => x + 1);
+
+                lastHandledKeyRef.current = null;
+            }
+        );
+
+        return () => {
+            unsub?.();
+            subscribedRef.current = false;
+        };
+    }, [game]);
+
+    const createRoomAndWaitCode = (name?: string, timeoutMs = 8000) => {
+        return new Promise<string>((resolve, reject) => {
+            const finalName = (name && name.trim()) || getDefaultName();
+            if (pendingRoomResolveRef.current || pendingRoomRejectRef.current) {
+                pendingRoomRejectRef.current?.(new Error("Operación previa en curso"));
+                pendingRoomResolveRef.current = null;
+                pendingRoomRejectRef.current = null;
+            }
+            pendingRoomResolveRef.current = resolve;
+            pendingRoomRejectRef.current = reject;
+
+            socketRef.current?.emit("create_room", { name: finalName });
+
+            const t = setTimeout(() => {
+                if (pendingRoomRejectRef.current === reject) {
+                    try { reject(new Error("Timeout creando sala")); } finally {
+                        pendingRoomResolveRef.current = null;
+                        pendingRoomRejectRef.current = null;
+                    }
+                }
+            }, timeoutMs);
+
+            const originalResolve = resolve;
+            const originalReject = reject;
+            pendingRoomResolveRef.current = (code: string) => {
+                clearTimeout(t);
+                originalResolve(code);
+            };
+            pendingRoomRejectRef.current = (err: any) => {
+                clearTimeout(t);
+                originalReject(err);
+            };
+        });
+    };
+
+    const createRoom = (name?: string) => {
+        const u = getCurrentUser();
+        if (!u) return;
+        const finalName = (name && name.trim()) || getDefaultName();
+        setMyName(finalName);
+        socketRef.current?.emit("create_room", { name: finalName });
+    };
+
+    const joinRoom = (code: string, name?: string) => {
+        const u = getCurrentUser();
+        if (!u) return;
+        const finalName = (name && name.trim()) || getDefaultName();
+        setRoomId(code);
+        setMyName(finalName);
+        socketRef.current?.emit("join_room", { code, name: finalName });
+    };
+
+    const requestRematch = () => {
+        if (!roomId) return;
+        socketRef.current?.emit("request_rematch", { code: roomId });
+    };
+
+    const leaveRoom = () => {
+        if (!roomId) return;
+        socketRef.current?.emit("leave_room", { code: roomId });
+        setRoomId(null);
+        setMyName("");
+        setOpponentName("");
+        setStatus("waiting");
+        setWinnerSocketId(null);
+        setRematchStatus("idle");
+        setCurrentChallengeId(null);
+    };
+
+    const cancelRoom = async () => {
+        if (!roomId) return;
+
+        socketRef.current?.emit("cancel_room", { code: roomId });
+        console.log(currentChallengeId)
+
+        if (currentChallengeId) {
+            await cancelOutgoingChallenge(currentChallengeId);
+        }
+
+        setRoomId(null);
+        setStatus("waiting");
+    };
+
+    const rejectRoom = (roomCode: string) => {
+        socketRef.current?.emit("reject_room", { code: roomCode });
+        setRoomId(null);
+        setStatus("waiting");
+    };
+
+    const findMatch = (name?: string, cups?: number) => {
+        const u = getCurrentUser();
+        if (!u) return;
+        const finalName = (name && name.trim()) || getDefaultName();
+        setStatus("queueing");
+        setRoomId(null);
+        setMyName(finalName);
+        socketRef.current?.emit("find_match", { name: finalName, cups });
+    };
+
+    const cancelFind = () => {
+        socketRef.current?.emit("cancel_find");
+        setStatus("waiting");
+    };
+
+    const surrender = () => {
+        if (!roomId) return;
+        socketRef.current?.emit("surrender", { code: roomId });
+    };
+
+    const offerDraw = () => {
+        if (!roomId || drawStatus !== "idle") return;
+        if (drawOffersCount >= MAX_DRAWS_PER_MATCH) return;
+        setDrawStatus("offering");
+        socketRef.current?.emit("draw_offer", { code: roomId });
+    };
+
+    const respondDraw = (accept: boolean) => {
+        if (!roomId || drawStatus !== "incoming") return;
+        socketRef.current?.emit("draw_response", { code: roomId, accept });
+        setDrawStatus(accept ? "accepted" : "declined");
+        setDrawOfferFrom(null);
+    };
+
+    return {
+        roomId,
+        gameStatus: status,
+        countdown,
+        winner,
+        score,
+        rivalScore,
+        rivalWordIndex,
+        rivalBoard,
+        roundResultsPlayer,
+        roundResultsRival,
+        winnerSocketId,
+        rematchStatus,
+        mySocketId,
+        socket,
+        currentWordIndex: idxRef.current,
+        guesses: game.guesses,
+        evaluations: game.evaluations,
+        currentGuess: game.currentGuess,
+        currentRow: game.currentRow,
+        revealingRow: game.revealingRow,
+        keyboardColors: game.keyboardColors,
+        toastMessage: game.toastMessage,
+        handleKeyPress: game.handleKeyPress,
+        handleRevealComplete: game.finishReveal,
+        getCompetitiveCups: game.getCompetitiveCups,
+        createRoom,
+        joinRoom,
+        createRoomAndWaitCode,
+        leaveRoom,
+        requestRematch,
+        findMatch,
+        cancelFind,
+        myName,
+        opponentName,
+        competitive: {
+            cups: profile.cups,
+            wins: profile.wins,
+            losses: profile.losses,
+            draws: profile.draws,
+            gamesPlayed: profile.gamesPlayed,
+            lastMatchDelta,
+            history: profile.history,
+        },
+        surrender,
+        offerDraw,
+        respondDraw,
+        drawStatus,
+        drawOfferFrom,
+        drawOffersCount,
+        canOfferDraw,
+        cancelRoom,
+        setCurrentChallengeId,
+        currentChallengeId,
+        rejectRoom
+    };
+}
