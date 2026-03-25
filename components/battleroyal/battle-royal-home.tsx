@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import AuthRequiredModal from "../auth/AuthGate";
 import BRLobbyScreen from "./br-lobby-screen";
 import BRSpectatorScreen from "./br-spectator-screen";
+import BRFinishedScreen from "./br-finished-screen";
+import BRPlayingScreen from "./br-playing-screen";
 
 interface Props {
     onExit: () => void;
@@ -60,21 +62,21 @@ export default function BattleRoyaleHome({ onExit }: Props) {
         );
     }
 
-    // if (br.phase === "finished" && br.gameOverData) {
-    //     return (
-    //         <BRFinishedScreen
-    //             gameOverData={br.gameOverData}
-    //             mySocketId={br.mySocketId ?? ""}
-    //             onPlayAgain={() => { br.resetState(); br.joinQueue(); }}
-    //             onExit={() => { br.resetState(); onExit(); }}
-    //         />
-    //     );
-    // }
+    if (br.phase === "finished" && br.gameOverData) {
+        return (
+            <BRFinishedScreen
+                gameOverData={br.gameOverData}
+                mySocketId={br.mySocketId ?? ""}
+                onPlayAgain={() => { br.resetState(); br.joinQueue(); }}
+                onExit={() => { br.resetState(); onExit(); }}
+            />
+        );
+    }
 
-    // return (
-    //     <BRPlayingScreen
-    //         br={br}
-    //         onExit={() => { br.resetState(); onExit(); }}
-    //     />
-    // );
+    return (
+        <BRPlayingScreen
+            br={br}
+            onExit={() => { br.resetState(); onExit(); }}
+        />
+    );
 }
