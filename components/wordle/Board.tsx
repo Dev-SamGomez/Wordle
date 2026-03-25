@@ -1,6 +1,6 @@
 "use client";
 
-import { type Evaluation } from "@/hooks/use-game";
+import { Evaluation } from "@/lib/hooks/use-game";
 import { Tile } from "./Tile";
 import { useEffect, useRef } from "react";
 

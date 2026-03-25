@@ -1,13 +1,13 @@
-import { useMultiplayer } from "@/hooks/use-multiplayergame";
 import { Board } from "../wordle/Board";
 import { Keyboard } from "../wordle/Keyboard";
 import { Toast } from "../wordle/Toast";
 import RoundDots from "./round-dots";
 import { RivalMiniBoard } from "./mini-board-rival";
-import { usePresenceFirestore } from "@/hooks/use-presence";
 import DrawModal from "./draw-modal";
 import { useEffect, useState } from "react";
 import SurrenderModal from "./surrender-modal";
+import { usePresenceFirestore } from "@/lib/hooks/use-presence";
+import { useMultiplayer } from "@/lib/hooks/use-multiplayergame";
 interface PlayingScreenProps {
     game: ReturnType<typeof useMultiplayer>;
 }

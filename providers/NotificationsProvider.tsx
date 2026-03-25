@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot } from "@/lib/utils/challenges";
+import { onIncomingChallengesSnapshot } from "@/lib/utils/challenges";
 import { useToast } from "@/context/ToastContext";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();

@@ -1,7 +1,6 @@
 import { Equal, LogOut, RotateCcw, ShieldOff, Trophy } from "lucide-react";
 import RoundDots from "./round-dots";
-import { usePresenceFirestore } from "@/hooks/use-presence";
-
+import { usePresenceFirestore } from "@/lib/hooks/use-presence";
 interface FinishedScreenProps {
     winnerSocketId: string | "draw" | null;
     mySocketId: string | null;

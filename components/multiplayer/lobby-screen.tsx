@@ -1,10 +1,10 @@
-import { useMultiplayer } from "@/hooks/use-multiplayergame";
 import { LogIn, Plus, Trophy, Users, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SiChessdotcom } from "react-icons/si";
 import FriendsPanel from "../wordle/Friends/FriendPanel";
-import { useAuth } from "@/hooks/use-auth";
-import { usePresenceFirestore } from "@/hooks/use-presence";
+import { useMultiplayer } from "@/lib/hooks/use-multiplayergame";
+import { usePresenceFirestore } from "@/lib/hooks/use-presence";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 export const LobbyScreen = ({ game, namePlayer }: { game: ReturnType<typeof useMultiplayer>; namePlayer: string }) => {
     const { user } = useAuth();

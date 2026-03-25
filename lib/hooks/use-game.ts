@@ -3,8 +3,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { WORDS } from "@/data/words";
 import { evaluateGuess, type LetterState } from "@/lib/utils/evaluateWord";
-import { getCurrentUser } from "@/lib/auth-client";
-import { getCompetitiveProfile } from "@/lib/utils/competitive-firestore";
 import { useAuth } from "./use-auth";
 import { getFirebase } from "@/lib/firebase-client";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -14,7 +12,6 @@ export type Evaluation = LetterState;
 export type GameStatus = "playing" | "won" | "lost";
 export type KeyboardColors = Record<string, LetterState>;
 export type GameMode = "solitaire" | "daily" | "multiplayer";
-
 export interface GameState {
   solution: string;
   guesses: string[];

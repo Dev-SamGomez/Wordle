@@ -5,7 +5,6 @@ import { Board } from "@/components/wordle/Board";
 import { Keyboard } from "@/components/wordle/Keyboard";
 import { Tutorial } from "@/components/wordle/Tutorial";
 import { Toast } from "@/components/wordle/Toast";
-import { useGame } from "@/hooks/use-game";
 import { Flame, LogOut, Menu, UserIcon } from "lucide-react";
 import SidebarMenu from "@/components/wordle/SideBarMenu";
 import MultiplayerHome from "@/components/multiplayer/multiplayer-home";
@@ -14,11 +13,12 @@ import CompetitiveRecord from "@/components/wordle/HistoryCompetitive";
 import Leaderboard from "@/components/wordle/Leaderboard";
 import SettingsScreen from "@/components/wordle/ConfigScreen";
 import { signOutUser } from "@/lib/auth-client";
-import { useAuth } from "@/hooks/use-auth";
 import AuthDialogContent from "@/components/auth/AuthGate";
 import { formatCups } from "@/lib/utils/competitive";
-import { usePresenceFirestore } from "@/hooks/use-presence";
 import { EdgeSwipeZone } from "@/components/wordle/EdgeSwipeZone";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useGame } from "@/lib/hooks/use-game";
+import { usePresenceFirestore } from "@/lib/hooks/use-presence";
 
 export default function Home() {
   const { user, authLoading } = useAuth();

@@ -5,7 +5,6 @@ import { Search, Loader2, Trophy, UserPlus, Users } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { getFirebase } from "@/lib/firebase-client";
 import { collection, onSnapshot, query, where, documentId, enableNetwork, disableNetwork } from "firebase/firestore";
-import { useAuth } from "@/hooks/use-auth";
 import {
     onFriendsSnapshot,
     onIncomingFriendRequestsSnapshot,
@@ -15,12 +14,13 @@ import {
     onOutgoingFriendRequestsSnapshot,
 } from "@/lib/utils/social";
 import { acceptChallengeAndJoin, onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot, rejectChallenge, sendChallengeWithRoom } from "@/lib/utils/challenges";
-import { useMultiplayer } from "@/hooks/use-multiplayergame";
 import CompetitiveRecord from "../HistoryCompetitive";
-import { usePresenceFirestore } from "@/hooks/use-presence";
 import { FriendRow } from "@/data/friend-row";
 import FriendCard from "./FriendCard";
 import { useToast } from "@/context/ToastContext";
+import { useMultiplayer } from "@/lib/hooks/use-multiplayergame";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { usePresenceFirestore } from "@/lib/hooks/use-presence";
 
 type Props = { game: ReturnType<typeof useMultiplayer> };
 

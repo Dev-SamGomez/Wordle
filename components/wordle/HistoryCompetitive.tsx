@@ -8,10 +8,9 @@ import { RANKS } from "@/data/ranks";
 import { formatDate } from "@/lib/utils/formatDate";
 import { getRankInfo } from "@/lib/utils/getRank";
 import { resultConfig } from "@/data/result-config";
-import { useAuth } from "@/hooks/use-auth";
 import { getCompetitiveProfile } from "@/lib/utils/competitive-firestore";
 import AuthRequiredModal from "../auth/AuthGate";
-
+import { useAuth } from "@/lib/hooks/use-auth";
 interface CompetitiveRecordProps {
     onClose: () => void;
     uid?: string | null;

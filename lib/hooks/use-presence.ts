@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { getFirebase } from "@/lib/firebase-client";
-import { useAuth } from "@/hooks/use-auth";
 import {
     doc,
     setDoc,
@@ -11,6 +10,7 @@ import {
     DocumentReference,
 } from "firebase/firestore";
 import { PresenceState } from "@/data/presence-state";
+import { useAuth } from "./use-auth";
 
 type Activity = "idle" | "queue" | "playing";
 

@@ -1,14 +1,14 @@
 "use client";
 
-import { useMultiplayer } from "@/hooks/use-multiplayergame";
 import LobbyScreen from "./lobby-screen";
 import WaitingScreen from "./waiting-screen";
 import CountdownScreen from "./countdown-screen";
 import PlayingScreen from "./playing-screen";
 import FinishedScreen from "./finished-screen";
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import AuthRequiredModal from "../auth/AuthGate";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useMultiplayer } from "@/lib/hooks/use-multiplayergame";
 
 export default function MultiplayerHome() {
     const { user, authLoading } = useAuth();

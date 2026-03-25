@@ -3,13 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Trophy, X, Crown, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { getRank } from "@/lib/utils/getRank";
-
-import { collection, query, orderBy, limit, onSnapshot, where } from "firebase/firestore";
+import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { getFirebase } from "@/lib/firebase-client";
-
-import { useAuth } from "@/hooks/use-auth";
 import AuthRequiredModal from "../auth/AuthGate";
-
+import { useAuth } from "@/lib/hooks/use-auth";
 export interface LeaderboardPlayer {
     id: string;
     nickname: string;
@@ -28,11 +25,6 @@ interface LeaderboardProps {
 }
 
 type Trend = "up" | "down" | "flat";
-// type Row = LeaderboardPlayer & {
-//     delta: number;
-//     posDelta: number;
-//     trend: Trend;
-// };
 
 export default function Leaderboard({
     onClose,
@@ -45,7 +37,6 @@ export default function Leaderboard({
 
     const [loading, setLoading] = useState(true);
     const [rows, setRows] = useState<LeaderboardPlayer[]>([]);
-    // const prevMapRef = useRef<Map<string, { cups: number; pos: number }>>(new Map());
 
     useEffect(() => {
         if (!requireAuth) return;
