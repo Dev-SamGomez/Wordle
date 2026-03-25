@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { getFirebase } from "@/src/lib/firebase-client";
+import { getFirebase } from "@/src/lib/utils/firebase-client";
 import {
     doc,
     setDoc,
@@ -9,7 +9,7 @@ import {
     serverTimestamp,
     DocumentReference,
 } from "firebase/firestore";
-import { PresenceState } from "@/src/data/presence-state";
+import { PresenceState } from "@/src/lib/data/presence-state";
 import { useAuth } from "./use-auth";
 
 type Activity = "idle" | "queue" | "playing";

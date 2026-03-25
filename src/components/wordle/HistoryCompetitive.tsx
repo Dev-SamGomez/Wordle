@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { Trophy, Swords, X, Loader2 } from "lucide-react";
 
-import { CompetitiveProfile } from "@/src/data/competitive-res";
+import { CompetitiveProfile } from "@/src/lib/data/competitive-res";
 import { RANKS } from "@/src/lib/models/ranks";
 import { formatDate } from "@/src/lib/utils/formatDate";
 import { getRankInfo } from "@/src/lib/utils/getRank";
 import { resultConfig } from "@/src/lib/models/result-config";
-import { getCompetitiveProfile } from "@/src/lib/utils/competitive-firestore";
+import { getCompetitiveProfile } from "@/src/lib/stores/competitive-firestore";
 import AuthRequiredModal from "../auth/AuthGate";
 import { useAuth } from "@/src/lib/hooks/use-auth";
 interface CompetitiveRecordProps {

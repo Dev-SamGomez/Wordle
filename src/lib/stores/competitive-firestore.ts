@@ -1,9 +1,9 @@
 "use client";
 
-import { getFirebase } from "@/src/lib/firebase-client";
+import { getFirebase } from "@/src/lib/utils/firebase-client";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import type { CompetitiveProfile } from "@/src/data/competitive-res";
-import { num } from "./normalize-numbers";
+import type { CompetitiveProfile } from "@/src/lib/data/competitive-res";
+import { num } from "../utils/normalize-numbers";
 
 
 export function normalizeCompetitiveProfile(input: Partial<CompetitiveProfile> | null | undefined): CompetitiveProfile {

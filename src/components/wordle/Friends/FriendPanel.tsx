@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Loader2, Trophy, UserPlus, Users } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/src/components/ui/tooltip";
-import { getFirebase } from "@/src/lib/firebase-client";
+import { getFirebase } from "@/src/lib/utils/firebase-client";
 import { collection, onSnapshot, query, where, documentId, enableNetwork, disableNetwork } from "firebase/firestore";
 import {
     onFriendsSnapshot,
@@ -15,7 +15,7 @@ import {
 } from "@/src/lib/utils/social";
 import { acceptChallengeAndJoin, onIncomingChallengesSnapshot, onOutgoingChallengesSnapshot, rejectChallenge, sendChallengeWithRoom } from "@/src/lib/utils/challenges";
 import CompetitiveRecord from "../HistoryCompetitive";
-import { FriendRow } from "@/src/data/friend-row";
+import { FriendRow } from "@/src/lib/data/friend-row";
 import FriendCard from "./FriendCard";
 import { useToast } from "@/src/context/ToastContext";
 import { useMultiplayer } from "@/src/lib/hooks/use-multiplayergame";

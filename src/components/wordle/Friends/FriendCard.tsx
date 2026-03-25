@@ -1,4 +1,4 @@
-import { FriendRow } from "@/src/data/friend-row";
+import { FriendRow } from "@/src/lib/data/friend-row";
 import PresenceRing from "./PresenceRing";
 import TrendBadge from "./TrendBadge";
 import PresenceLabel from "./PresenceLabel";

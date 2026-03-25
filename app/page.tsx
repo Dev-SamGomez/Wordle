@@ -12,7 +12,7 @@ import MainScreen from "@/src/components/main";
 import CompetitiveRecord from "@/src/components/wordle/HistoryCompetitive";
 import Leaderboard from "@/src/components/wordle/Leaderboard";
 import SettingsScreen from "@/src/components/wordle/ConfigScreen";
-import { signOutUser } from "@/src/lib/auth-client";
+import { signOutUser } from "@/src/lib/utils/auth-client";
 import AuthDialogContent from "@/src/components/auth/AuthGate";
 import { formatCups } from "@/src/lib/utils/competitive";
 import { EdgeSwipeZone } from "@/src/components/wordle/EdgeSwipeZone";

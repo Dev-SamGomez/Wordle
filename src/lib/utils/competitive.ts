@@ -1,4 +1,4 @@
-import { CompetitiveProfile, CompetitiveResult } from "@/src/data/competitive-res";
+import { CompetitiveProfile, CompetitiveResult } from "@/src/lib/data/competitive-res";
 import { num } from "./normalize-numbers";
 
 const FLOOR_CUPS = 0;

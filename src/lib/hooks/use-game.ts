@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { WORDS } from "@/src/lib/models/words";
 import { evaluateGuess, type LetterState } from "@/src/lib/utils/evaluateWord";
 import { useAuth } from "./use-auth";
-import { getFirebase } from "@/src/lib/firebase-client";
+import { getFirebase } from "@/src/lib/utils/firebase-client";
 import { doc, onSnapshot } from "firebase/firestore";
 
 export type { LetterState };

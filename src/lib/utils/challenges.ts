@@ -1,4 +1,4 @@
-import { getFirebase } from "@/src/lib/firebase-client";
+import { getFirebase } from "@/src/lib/utils/firebase-client";
 import {
     addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, query,
     serverTimestamp, Timestamp, updateDoc, where

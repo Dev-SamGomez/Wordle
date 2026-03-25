@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Trophy, X, Crown, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { getRank } from "@/src/lib/utils/getRank";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
-import { getFirebase } from "@/src/lib/firebase-client";
+import { getFirebase } from "@/src/lib/utils/firebase-client";
 import AuthRequiredModal from "../auth/AuthGate";
 import { useAuth } from "@/src/lib/hooks/use-auth";
 export interface LeaderboardPlayer {

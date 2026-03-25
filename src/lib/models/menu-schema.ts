@@ -1,4 +1,4 @@
-import { MenuItem } from "../../data/menu-items";
+import { MenuItem } from "../data/menu-items";
 
 export const menuItems: MenuItem[] = [
     { label: "Inicio", action: "inicio" },

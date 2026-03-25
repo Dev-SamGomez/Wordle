@@ -2,8 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { X, Mail, User as UserIcon, Lock, Loader2, ShieldCheck, RefreshCcw } from "lucide-react";
-import { signInWithGoogle, signInWithEmail, signUpWithEmail, ensureNickname } from "@/src/lib/auth-client";
-import { getFirebase } from "@/src/lib/firebase-client";
+import { signInWithGoogle, signInWithEmail, signUpWithEmail, ensureNickname } from "@/src/lib/utils/auth-client";
+import { getFirebase } from "@/src/lib/utils/firebase-client";
 import { sendEmailVerification } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
 

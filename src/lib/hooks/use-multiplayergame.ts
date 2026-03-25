@@ -4,11 +4,11 @@ import { io, Socket } from "socket.io-client";
 import { useGame } from "./use-game";
 import type { LetterState } from "@/src/lib/utils/evaluateWord";
 import { applyCompetitiveResult } from "@/src/lib/utils/competitive";
-import { CompetitiveProfile, CompetitiveResult } from "@/src/data/competitive-res";
-import { RivalUpdate } from "@/src/data/rival-update-type";
-import { GameFinishedPayload } from "@/src/data/game-finished-payload-type";
-import { getCurrentUser } from "@/src/lib/auth-client";
-import { getCompetitiveProfile, normalizeCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/src/lib/utils/competitive-firestore";
+import { CompetitiveProfile, CompetitiveResult } from "@/src/lib/data/competitive-res";
+import { RivalUpdate } from "@/src/lib/data/rival-update-type";
+import { GameFinishedPayload } from "@/src/lib/data/game-finished-payload-type";
+import { getCurrentUser } from "@/src/lib/utils/auth-client";
+import { getCompetitiveProfile, normalizeCompetitiveProfile, saveCompetitiveProfileToFirestore, updateLeaderboardFromProfile } from "@/src/lib/stores/competitive-firestore";
 import { cancelOutgoingChallenge } from "@/src/lib/utils/challenges";
 
 const EMPTY_PROFILE: CompetitiveProfile = {

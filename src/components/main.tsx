@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { User, Users, HelpCircle, CalendarDays } from "lucide-react";
 import { DAILY_BOARD, LETTERS, MINI_BOARD } from "@/src/lib/models/letters-title";
-import { STATE_COLORS } from "@/src/data/dictionaries/state-colors";
+import { STATE_COLORS } from "@/src/lib/data/dictionaries/state-colors";
 
 const GRID_ROWS = 6;
 const GRID_COLS = 5;
