@@ -24,6 +24,7 @@ export interface BRPlayer {
     wordsResolved: number;
     currentAttempt: number;
     finishedCurrentWord: boolean;
+    solvedCurrentWord: boolean;
     isEliminated: boolean;
     abandoned: boolean;
 }
@@ -111,15 +112,26 @@ export function useBattleRoyale() {
             round: number;
             word: string;
             roundTimerEndsAt: number;
+            serverNow: number;
+            players: BRPlayer[];
+            isSuddenDeath?: boolean;
         }) => {
+            const offset = d.serverNow ? Date.now() - d.serverNow : 0;
             setCurrentRound(d.round);
             setCurrentWord(d.word.toUpperCase());
-            setRoundTimerEndsAt(d.roundTimerEndsAt);
+            setRoundTimerEndsAt(d.roundTimerEndsAt + offset);
             setLastRoundResult(null);
-            setIsSuddenDeath(false);
-            setPhase(prev =>
-                prev === "spectator" ? "spectator" : "round_active"
-            );
+            setIsSuddenDeath(!!d.isSuddenDeath);
+
+            if (d.players?.length) {
+                setPlayers(d.players.map(p => ({ ...p, isHost: false, solvedCurrentWord: false })));
+            }
+
+            setPhase(prev => {
+                if (prev === "spectator") return "spectator";
+                if (d.isSuddenDeath) return "sudden_death";
+                return "round_active";
+            });
         });
 
         s.on("br_player_progress", (d: {
@@ -128,13 +140,20 @@ export function useBattleRoyale() {
             wordsResolved: number;
             currentAttempt: number;
             finishedCurrentWord: boolean;
+            solvedCurrentWord?: boolean;
         }) => {
             setPlayers(prev => {
                 const exists = prev.find(p => p.socketId === d.socketId);
                 if (exists) {
                     return prev.map(p =>
                         p.socketId === d.socketId
-                            ? { ...p, wordsResolved: d.wordsResolved, currentAttempt: d.currentAttempt, finishedCurrentWord: d.finishedCurrentWord }
+                            ? {
+                                ...p,
+                                wordsResolved: d.wordsResolved,
+                                currentAttempt: d.currentAttempt,
+                                finishedCurrentWord: d.finishedCurrentWord,
+                                solvedCurrentWord: d.solvedCurrentWord ?? p.solvedCurrentWord,
+                            }
                             : p
                     );
                 }
@@ -145,6 +164,7 @@ export function useBattleRoyale() {
                     wordsResolved: d.wordsResolved,
                     currentAttempt: d.currentAttempt,
                     finishedCurrentWord: d.finishedCurrentWord,
+                    solvedCurrentWord: d.solvedCurrentWord ?? false,
                     isEliminated: false,
                     abandoned: false,
                 }];
@@ -154,6 +174,7 @@ export function useBattleRoyale() {
         s.on("br_round_end", (d: BRRoundResult) => {
             setLastRoundResult(d);
             if (d.eliminated.length > 0) {
+                console.log("[BR] round_end myId:", s.id, "eliminated:", d.eliminated);
                 setPlayers(prev =>
                     prev.map(p =>
                         d.eliminated.find(e => e.socketId === p.socketId)
@@ -171,13 +192,25 @@ export function useBattleRoyale() {
             });
         });
 
-        s.on("br_sudden_death", (d: { round: number; roundTimerEndsAt: number }) => {
+        s.on("br_sudden_death", (d: {
+            round: number;
+            roundTimerEndsAt: number;
+            serverNow?: number;
+            survivors: { socketId: string; name: string }[];
+        }) => {
+            const offset = d.serverNow ? Date.now() - d.serverNow : 0;
             setCurrentRound(d.round);
-            setRoundTimerEndsAt(d.roundTimerEndsAt);
+            setRoundTimerEndsAt(d.roundTimerEndsAt + offset);
             setIsSuddenDeath(true);
-            setPhase(prev =>
-                prev === "spectator" ? "spectator" : "sudden_death"
+            setPlayers(prev =>
+                prev.map(p => ({
+                    ...p,
+                    currentAttempt: 0,
+                    finishedCurrentWord: false,
+                    solvedCurrentWord: false,
+                }))
             );
+            setPhase(prev => prev === "spectator" ? "spectator" : "sudden_death");
         });
 
         s.on("br_player_abandoned", (d: { socketId: string }) => {
@@ -217,6 +250,7 @@ export function useBattleRoyale() {
                     wonSuddenDeath: d.reachedSuddenDeath
                         ? myResult.position === 1
                         : null,
+                    cupsChangeSentByServer: myResult.cupsChange,
                 });
                 await saveBRProfile(user.uid, updated);
                 await updateLeaderboardFromBRProfile(user.uid, updated);

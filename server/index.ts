@@ -517,20 +517,32 @@ io.on("connection", (socket: Socket) => {
         hostForceLaunch(io, socket.id);
     });
 
-    socket.on("br_row_resolved", (data: {
-        roomId: string;
-        wordIndex: number;
-        wasSolved: boolean;
-        wordFinished: boolean;
-        lastEval: ("correct" | "present" | "absent")[];
-    }) => {
-        const room = roomsById.get(data.roomId) as BattleRoyaleRoom | undefined;
-        if (!room || room.mode !== "battle_royale") return;
+    // socket.on("br_row_resolved", (data: {
+    //     roomId: string;
+    //     wordIndex: number;
+    //     wasSolved: boolean;
+    //     wordFinished: boolean;
+    //     lastEval: ("correct" | "present" | "absent")[];
+    // }) => {
+    //     const room = roomsById.get(data.roomId) as BattleRoyaleRoom | undefined;
+    //     if (!room || room.mode !== "battle_royale") return;
+    //     const brRoom = room as BattleRoyaleRoom;
+    //     if (brRoom.status === "round_active") {
+    //         handleBRRowResolved(io, brRoom, socket.id, data);
+    //     } else if (brRoom.status === "sudden_death") {
+    //         handleSuddenDeathRowResolved(io, brRoom, socket.id, data);
+    //     }
+    // });
+
+    socket.on("br_row_resolved", (data) => {
+        const room = roomsById.get(data.roomId);
+        if (!room || !isBRRoom(room)) return;
         const brRoom = room as BattleRoyaleRoom;
-        if (brRoom.status === "round_active") {
-            handleBRRowResolved(io, brRoom, socket.id, data);
-        } else if (brRoom.status === "sudden_death") {
+
+        if (brRoom.status === "sudden_death") {
             handleSuddenDeathRowResolved(io, brRoom, socket.id, data);
+        } else if (brRoom.status === "round_active") {
+            handleBRRowResolved(io, brRoom, socket.id, data);
         }
     });
 

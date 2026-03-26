@@ -56,6 +56,7 @@ export default function BattleRoyaleHome({ onExit }: Props) {
                 currentRound={br.currentRound}
                 isSuddenDeath={br.isSuddenDeath}
                 mySocketId={br.mySocketId ?? ""}
+                roundTimerEndsAt={br.roundTimerEndsAt}
                 onPlayAgain={() => { br.resetState(); br.joinQueue(); }}
                 onExit={() => { br.resetState(); onExit(); }}
             />

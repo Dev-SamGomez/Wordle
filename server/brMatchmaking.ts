@@ -155,7 +155,7 @@ export function launchBRMatch(io: Server) {
         socket?.emit("br_match_found", { code, roomId: id });
     }
 
-    let counter = 3;
+    let counter = 1;
     const interval = setInterval(() => {
         io.to(id).emit("countdown_tick", counter);
         counter--;

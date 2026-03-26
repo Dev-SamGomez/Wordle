@@ -35,23 +35,33 @@ export interface BRResultParams {
     abandoned: boolean;
     reachedSuddenDeath: boolean;
     wonSuddenDeath: boolean | null;
+    cupsChangeSentByServer?: number;
 }
 
 const FLOOR_BR_CUPS = 0;
 
-export function positionToBRDelta(position: number, abandoned: boolean): number {
-    if (abandoned) return -10;
+export function positionToBRDelta(
+    position: number,
+    abandoned: boolean,
+    eliminatedAtRound: number | null,
+    totalPlayers: number
+): number {
+    if (abandoned) return -15;
+    if (position === totalPlayers) return -15;
+    if (eliminatedAtRound === 0) return -15;
+
     switch (position) {
         case 1: return 50;
         case 2: return 20;
         case 3: return 10;
-        case 4: return 5;
-        default: return 0;
+        default: return 5;
     }
 }
 
 export function applyBRResult(profile: BRProfile, params: BRResultParams): BRProfile {
-    const delta = positionToBRDelta(params.finalPosition, params.abandoned);
+    const delta = typeof params.cupsChangeSentByServer === "number"
+        ? params.cupsChangeSentByServer
+        : positionToBRDelta(params.finalPosition, params.abandoned, params.eliminatedAtRound, params.playerCount);
 
     let brCups = (profile.brCups ?? 0) + delta;
     if (brCups < FLOOR_BR_CUPS) brCups = FLOOR_BR_CUPS;

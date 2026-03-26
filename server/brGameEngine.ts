@@ -3,7 +3,7 @@ import { BattleRoyaleRoom, BRPlayerState } from "./brTypes";
 import { deleteRoom } from "./rooms";
 import { getThreeRandomWords } from "./wordService";
 
-const ROUND_TIMERS = [300, 240, 180, 120, 60];
+const ROUND_TIMERS = [120, 120, 120, 120, 120];
 
 function getRoundDuration(roundIndex: number): number {
     return (ROUND_TIMERS[roundIndex] ?? 60) * 1000;
@@ -26,6 +26,17 @@ export function startBRRound(io: Server, room: BattleRoyaleRoom) {
         round: room.currentRound,
         word: room.words[room.currentRound],
         roundTimerEndsAt: room.roundTimerEndsAt,
+        serverNow: Date.now(),
+        players: room.players.map(p => ({
+            socketId: p.socketId,
+            name: p.name,
+            wordsResolved: p.wordsResolved,
+            currentAttempt: 0,
+            finishedCurrentWord: false,
+            solvedCurrentWord: false,
+            isEliminated: p.isEliminated,
+            abandoned: p.abandoned,
+        })),
     });
 
     room.roundTimer = setTimeout(() => {
@@ -48,15 +59,26 @@ export function handleBRRowResolved(
     if (!player || player.isEliminated || room.status !== "round_active") return;
     if (data.wordIndex !== room.currentRound) return;
 
+    if (player.finishedCurrentWord) return;
+
     player.currentAttempt++;
+
+    if (data.wordFinished) {
+        player.finishedCurrentWord = true;
+        player.solvedCurrentWord = data.wasSolved;
+        if (data.wasSolved) {
+            player.wordsResolved++;
+            player.currentWordIndex++;
+        }
+    }
 
     io.to(room.id).emit("br_player_progress", {
         socketId,
         name: player.name,
         wordsResolved: player.wordsResolved,
-        currentWordIndex: player.currentWordIndex,
         currentAttempt: player.currentAttempt,
         finishedCurrentWord: player.finishedCurrentWord,
+        solvedCurrentWord: player.solvedCurrentWord,
         wasSolved: data.wasSolved,
         evaluation: data.lastEval,
     });
@@ -70,17 +92,9 @@ export function handleBRRowResolved(
 
     if (!data.wordFinished) return;
 
-    player.finishedCurrentWord = true;
-    player.solvedCurrentWord = data.wasSolved;
-    if (data.wasSolved) {
-        player.wordsResolved++;
-        player.currentWordIndex++;
-    }
-
     const activePlayers = room.players.filter(p => !p.isEliminated);
     const allDone = activePlayers.every(p => p.finishedCurrentWord);
     if (allDone && room.status === "round_active") {
-        room.allFinishedCurrent = true;
         if (room.roundTimer) {
             clearTimeout(room.roundTimer);
             room.roundTimer = null;
@@ -90,7 +104,7 @@ export function handleBRRowResolved(
 }
 
 function closeRound(io: Server, room: BattleRoyaleRoom) {
-    if (room.status !== "round_active" && room.status !== "sudden_death") return;
+    if (room.status !== "round_active") return;
     room.status = "round_end";
 
     if (room.roundTimer) {
@@ -99,26 +113,23 @@ function closeRound(io: Server, room: BattleRoyaleRoom) {
     }
 
     const activePlayers = room.players.filter(p => !p.isEliminated);
-
+    const solved = activePlayers.filter(p => p.solvedCurrentWord);
     const failed = activePlayers.filter(p => !p.solvedCurrentWord);
 
     let toEliminate: BRPlayerState[] = [];
 
-    if (failed.length > 0) {
-        toEliminate = failed;
+    if (solved.length === 0) {
+        toEliminate = [];
     } else {
-        const maxAttempts = Math.max(...activePlayers.map(p => p.currentAttempt));
-        toEliminate = activePlayers.filter(p => p.currentAttempt === maxAttempts);
-
-        if (toEliminate.length === activePlayers.length) {
-            toEliminate = [];
-        }
+        toEliminate = failed;
     }
 
     for (const p of toEliminate) {
         p.isEliminated = true;
         p.eliminatedAtRound = room.currentRound;
-        room.eliminatedPlayers.push(p.socketId);
+        if (!room.eliminatedPlayers.includes(p.socketId)) {
+            room.eliminatedPlayers.push(p.socketId);
+        }
     }
 
     const survivors = activePlayers.filter(p => !p.isEliminated);
@@ -135,9 +146,7 @@ function closeRound(io: Server, room: BattleRoyaleRoom) {
         })),
     });
 
-    setTimeout(() => {
-        advanceRound(io, room);
-    }, 4000);
+    setTimeout(() => advanceRound(io, room), 4000);
 }
 
 function advanceRound(io: Server, room: BattleRoyaleRoom) {
@@ -148,10 +157,14 @@ function advanceRound(io: Server, room: BattleRoyaleRoom) {
         return;
     }
 
-    const isLastRound = room.currentRound >= room.words.length - 1;
-    if (isLastRound) {
-        startSuddenDeath(io, room);
-        return;
+    if (survivors.length >= 2) {
+        const lastRoundEliminated = room.players.filter(
+            p => p.isEliminated && p.eliminatedAtRound === room.currentRound
+        );
+        if (lastRoundEliminated.length === 0) {
+            startSuddenDeath(io, room);
+            return;
+        }
     }
 
     room.currentRound++;
@@ -161,8 +174,14 @@ function advanceRound(io: Server, room: BattleRoyaleRoom) {
 function startSuddenDeath(io: Server, room: BattleRoyaleRoom) {
     room.status = "sudden_death";
 
-    const newWord = getThreeRandomWords().find(w => !room.words.includes(w))
-        ?? getThreeRandomWords()[0];
+    let newWord: string;
+    let attempts = 0;
+    do {
+        const candidates = getThreeRandomWords();
+        newWord = candidates.find(w => !room.words.includes(w)) ?? candidates[0];
+        attempts++;
+    } while (room.words.includes(newWord) && attempts < 10);
+
     room.words.push(newWord);
     room.currentRound = room.words.length - 1;
 
@@ -179,7 +198,29 @@ function startSuddenDeath(io: Server, room: BattleRoyaleRoom) {
     io.to(room.id).emit("br_sudden_death", {
         round: room.currentRound,
         roundTimerEndsAt: room.roundTimerEndsAt,
+        serverNow: Date.now(),
+        survivors: survivors.map(p => ({ socketId: p.socketId, name: p.name })),
     });
+
+    for (const p of survivors) {
+        const socket = io.sockets.sockets.get(p.socketId);
+        socket?.emit("br_round_start", {
+            round: room.currentRound,
+            word: newWord,
+            roundTimerEndsAt: room.roundTimerEndsAt,
+            serverNow: Date.now(),
+            players: room.players.map(pl => ({
+                socketId: pl.socketId,
+                name: pl.name,
+                wordsResolved: pl.wordsResolved,
+                currentAttempt: 0,
+                finishedCurrentWord: false,
+                isEliminated: pl.isEliminated,
+                abandoned: pl.abandoned,
+            })),
+            isSuddenDeath: true,
+        });
+    }
 
     room.roundTimer = setTimeout(() => {
         handleSuddenDeathTimeout(io, room);
@@ -203,12 +244,29 @@ export function handleSuddenDeathRowResolved(
     io: Server,
     room: BattleRoyaleRoom,
     socketId: string,
-    data: { wasSolved: boolean; wordFinished: boolean; lastEval: ("correct" | "present" | "absent")[] }
+    data: {
+        wordIndex: number;
+        wasSolved: boolean;
+        wordFinished: boolean;
+        lastEval: ("correct" | "present" | "absent")[];
+    }
 ) {
+    if (room.status !== "sudden_death") return;
+
     const player = room.players.find(p => p.socketId === socketId);
-    if (!player || player.isEliminated || room.status !== "sudden_death") return;
+    if (!player || player.isEliminated) return;
+    if (data.wordIndex !== room.currentRound) return;
+    if (player.finishedCurrentWord) return;
 
     player.currentAttempt++;
+
+    if (data.wordFinished) {
+        player.finishedCurrentWord = true;
+        player.solvedCurrentWord = data.wasSolved;
+        if (data.wasSolved) {
+            player.wordsResolved++;
+        }
+    }
 
     io.to(room.id).emit("br_player_progress", {
         socketId,
@@ -216,20 +274,59 @@ export function handleSuddenDeathRowResolved(
         wordsResolved: player.wordsResolved,
         currentAttempt: player.currentAttempt,
         finishedCurrentWord: player.finishedCurrentWord,
+        solvedCurrentWord: player.solvedCurrentWord,
         wasSolved: data.wasSolved,
         evaluation: data.lastEval,
     });
 
+    const socket = io.sockets.sockets.get(socketId);
+    socket?.emit("br_row_ack", {
+        accepted: true,
+        currentAttempt: player.currentAttempt,
+        currentWordIndex: player.currentWordIndex,
+    });
+
     if (!data.wordFinished) return;
 
-    player.finishedCurrentWord = true;
-    player.solvedCurrentWord = data.wasSolved;
-
-    if (data.wordFinished && data.wasSolved && room.status === "sudden_death") {
-        player.finishedCurrentWord = true;
-        player.solvedCurrentWord = data.wasSolved;
-        if (room.roundTimer) clearTimeout(room.roundTimer);
+    if (data.wasSolved) {
+        if (room.roundTimer) {
+            clearTimeout(room.roundTimer);
+            room.roundTimer = null;
+        }
         endBRMatch(io, room, player);
+        return;
+    }
+
+    const activePlayers = room.players.filter(p => !p.isEliminated);
+    const allFinished = activePlayers.every(p => p.finishedCurrentWord);
+    const anyoneSolved = activePlayers.some(p => p.solvedCurrentWord);
+
+    if (allFinished && !anyoneSolved) {
+        if (room.roundTimer) {
+            clearTimeout(room.roundTimer);
+            room.roundTimer = null;
+        }
+        startSuddenDeath(io, room);
+    }
+}
+
+function calculateCups(
+    player: BRPlayerState,
+    totalPlayers: number
+): number {
+    if (player.abandoned) return -15;
+
+    const pos = player.finalPosition ?? totalPlayers;
+
+    if (pos === totalPlayers) return -15;
+
+    if (player.isEliminated && (player.eliminatedAtRound ?? 0) === 0) return -15;
+
+    switch (pos) {
+        case 1: return 50;
+        case 2: return 20;
+        case 3: return 10;
+        default: return 5;
     }
 }
 
@@ -246,30 +343,24 @@ export function endBRMatch(io: Server, room: BattleRoyaleRoom, winner: BRPlayerS
         room.roundTimer = null;
     }
 
-    const ordered = [...room.players].sort((a, b) => {
-        if (!a.isEliminated && b.isEliminated) return -1;
-        if (a.isEliminated && !b.isEliminated) return 1;
+    const survivors = room.players.filter(p => !p.isEliminated);
+    const eliminated = room.players.filter(p => p.isEliminated);
 
-        if (!a.isEliminated && !b.isEliminated) {
-            return b.wordsResolved - a.wordsResolved;
-        }
-
-        const roundA = a.eliminatedAtRound ?? -1;
-        const roundB = b.eliminatedAtRound ?? -1;
-        if (roundB !== roundA) return roundB - roundA;
+    eliminated.sort((a, b) => {
+        const ra = a.eliminatedAtRound ?? -1;
+        const rb = b.eliminatedAtRound ?? -1;
+        if (rb !== ra) return rb - ra;
         return b.wordsResolved - a.wordsResolved;
     });
 
+    survivors.sort((a, b) => b.wordsResolved - a.wordsResolved);
+
+    const ordered = [...survivors, ...eliminated];
     ordered.forEach((p, i) => { p.finalPosition = i + 1; });
 
     const cupsMap: Record<string, number> = {};
     for (const p of room.players) {
-        const delta = p.abandoned ? -10 :
-            p.finalPosition === 1 ? 50 :
-                p.finalPosition === 2 ? 20 :
-                    p.finalPosition === 3 ? 10 :
-                        p.finalPosition === 4 ? 5 : 0;
-        cupsMap[p.socketId] = delta;
+        cupsMap[p.socketId] = calculateCups(p, room.players.length);
     }
 
     io.to(room.id).emit("br_game_over", {
